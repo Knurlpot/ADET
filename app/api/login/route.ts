@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = users[0] as { AccountPassword: string; UserID: number };
+    const user = users[0] as { AccountPassword: string; UserID: number; Username: string };
 
     // Compare password with hashed password
     const isPasswordValid = await bcrypt.compare(
@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
       { 
         message: 'Login successful',
         userId: user.UserID,
+        username: user.Username,
       },
       { status: 200 }
     );

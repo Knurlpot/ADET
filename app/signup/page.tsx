@@ -1,6 +1,7 @@
 'use client';
 
 import React, { FormEvent, useId, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type FieldConfig = {
   id: string;
@@ -12,6 +13,7 @@ type FieldConfig = {
 };
 
 export const Signup = (): JSX.Element => {
+  const router = useRouter();
   const formId = useId();
   const [formData, setFormData] = useState({
     username: "",
@@ -19,7 +21,6 @@ export const Signup = (): JSX.Element => {
     accountPassword: "",
   });
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const fields: FieldConfig[] = [
@@ -53,7 +54,6 @@ export const Signup = (): JSX.Element => {
     event.preventDefault();
     setLoading(true);
     setErrorMessage("");
-    setSuccessMessage("");
 
     try {
       const response = await fetch("/api/signup", {
@@ -70,12 +70,12 @@ export const Signup = (): JSX.Element => {
         return;
       }
 
-      setSuccessMessage("Account created successfully!");
       setFormData({ username: "", email: "", accountPassword: "" });
+      localStorage.setItem("userUsername", formData.username);
       setTimeout(() => {
-        setSuccessMessage("");
         setLoading(false);
-      }, 2000);
+        router.push("/dashboard");
+      }, 1500);
     } catch (err) {
       setErrorMessage("An error occurred. Please try again.");
       setLoading(false);
@@ -137,14 +137,6 @@ export const Signup = (): JSX.Element => {
           <div className="flex w-full h-auto items-center justify-center px-[23.15px] py-[12px] relative bg-[#ff4444] rounded-[11.58px]">
             <div className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#ffffff] text-[18px] text-center tracking-[0] leading-[normal]">
               {errorMessage}
-            </div>
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="flex w-full h-auto items-center justify-center px-[23.15px] py-[12px] relative bg-[#44ff44] rounded-[11.58px]">
-            <div className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#000000] text-[18px] text-center tracking-[0] leading-[normal]">
-              {successMessage}
             </div>
           </div>
         )}

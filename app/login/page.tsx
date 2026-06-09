@@ -1,6 +1,7 @@
 'use client';
 
 import React, { FormEvent, useId, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const formFields = [
   {
@@ -24,6 +25,7 @@ const formFields = [
 ] as const;
 
 export const Login = (): JSX.Element => {
+  const router = useRouter();
   const emailId = useId();
   const passwordId = useId();
   const [formData, setFormData] = useState({
@@ -31,7 +33,6 @@ export const Login = (): JSX.Element => {
     accountPassword: "",
   });
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const fieldIds: Record<(typeof formFields)[number]["key"], string> = {
@@ -43,7 +44,6 @@ export const Login = (): JSX.Element => {
     event.preventDefault();
     setLoading(true);
     setErrorMessage("");
-    setSuccessMessage("");
 
     try {
       const response = await fetch("/api/login", {
@@ -60,12 +60,14 @@ export const Login = (): JSX.Element => {
         return;
       }
 
-      setSuccessMessage("Login successful!");
       setFormData({ email: "", accountPassword: "" });
+      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("userEmail", formData.email);
+      localStorage.setItem("userUsername", data.username);
       setTimeout(() => {
-        setSuccessMessage("");
         setLoading(false);
-      }, 2000);
+        router.push("/dashboard");
+      }, 1500);
     } catch (err) {
       setErrorMessage("An error occurred. Please try again.");
       setLoading(false);
@@ -139,14 +141,6 @@ export const Login = (): JSX.Element => {
             <div className="flex w-full h-auto items-center justify-center px-[23.15px] py-[12px] relative bg-[#ff4444] rounded-[11.58px]">
               <div className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#ffffff] text-[18px] text-center tracking-[0] leading-[normal]">
                 {errorMessage}
-              </div>
-            </div>
-          )}
-
-          {successMessage && (
-            <div className="flex w-full h-auto items-center justify-center px-[23.15px] py-[12px] relative bg-[#44ff44] rounded-[11.58px]">
-              <div className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#000000] text-[18px] text-center tracking-[0] leading-[normal]">
-                {successMessage}
               </div>
             </div>
           )}
