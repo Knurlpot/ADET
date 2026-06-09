@@ -1,0 +1,52 @@
+-- For MySQL
+
+-- Delete Existing Database
+DROP DATABASE IF EXISTS todo_app;
+
+-- Create Database
+CREATE DATABASE todo_app;
+USE todo_app;
+
+-- Users Table
+CREATE TABLE Users (
+    UserID INT AUTO_INCREMENT PRIMARY KEY,
+    Username VARCHAR(100) UNIQUE,
+    Email VARCHAR(100) NOT NULL UNIQUE,
+    AccountPassword VARCHAR(255) NOT NULL
+);
+
+-- Tasks Table
+CREATE TABLE Tasks (
+    TaskID INT AUTO_INCREMENT PRIMARY KEY,
+    UserID INT NOT NULL,
+    TaskName VARCHAR(100) NOT NULL,
+    TaskDesc TEXT,
+    TaskCategory ENUM(
+        'Personal',
+        'School',
+        'Work',
+        'Fitness',
+        'Others'
+    ) DEFAULT 'Others',
+    TaskStart DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    TaskEnd DATETIME NOT NULL,
+    TaskStatus ENUM(
+        'Pending',
+        'In-Progress',
+        'Completed'
+    ) DEFAULT 'Pending',
+    PriorityLevel ENUM(
+        'Low',
+        'Medium',
+        'High'
+    ) DEFAULT 'Medium',
+    DateCompleted DATETIME NULL,
+
+    CONSTRAINT FK_Tasks_Users
+        FOREIGN KEY (UserID)
+        REFERENCES Users(UserID)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+
