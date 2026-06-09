@@ -1,156 +1,191 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import React, { FormEvent, useId, useState } from "react";
 
-export default function SignUp() {
+type FieldConfig = {
+  id: string;
+  name: "username" | "email" | "accountPassword";
+  type: string;
+  label: string;
+  icon: string;
+  iconClassName: string;
+};
+
+export const Signup = (): JSX.Element => {
+  const formId = useId();
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    accountPassword: '',
+    username: "",
+    email: "",
+    accountPassword: "",
   });
-  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  const fields: FieldConfig[] = [
+    {
+      id: `${formId}-username`,
+      name: "username",
+      type: "text",
+      label: "username",
+      icon: "/username.svg",
+      iconClassName: "relative w-[45px] h-[47.22px]",
+    },
+    {
+      id: `${formId}-email`,
+      name: "email",
+      type: "email",
+      label: "email",
+      icon: "/email.svg",
+      iconClassName: "relative w-[45px] h-[27px]",
+    },
+    {
+      id: `${formId}-password`,
+      name: "accountPassword",
+      type: "password",
+      label: "password",
+      icon: "/password.svg",
+      iconClassName: "relative w-[45px] h-[62.47px]",
+    },
+  ];
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setLoading(true);
-    setError('');
+    setErrorMessage("");
+    setSuccessMessage("");
 
     try {
-      const response = await fetch('/api/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Signup failed');
+        setErrorMessage(data.error || "Signup failed. Please try again.");
         setLoading(false);
         return;
       }
 
-      setSubmitted(true);
+      setSuccessMessage("Account created successfully!");
+      setFormData({ username: "", email: "", accountPassword: "" });
       setTimeout(() => {
-        setFormData({ username: '', email: '', accountPassword: '' });
-        setSubmitted(false);
-        setError('');
+        setSuccessMessage("");
         setLoading(false);
       }, 2000);
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setErrorMessage("An error occurred. Please try again.");
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900">
-      {/* Navigation */}
-      <nav className="flex items-center justify-between px-6 py-4 sm:px-12 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <a href="/" className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          nudge
-        </a>
-      </nav>
-
-      {/* Sign Up Form Section */}
-      <div className="flex-1 flex items-center justify-center px-6 py-20 sm:px-12">
-        <div className="w-full max-w-md">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-800">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
-              Sign Up
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 text-center mb-8">
-                nudge
-            </p>
-
-            {submitted ? (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
-                <p className="text-green-700 dark:text-green-400 font-semibold">
-                  ✓ Account created successfully!
-                </p>
-              </div>
-            ) : error ? (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
-                <p className="text-red-700 dark:text-red-400 font-semibold">
-                  {error}
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Username Field */}
-                <div>
-                  <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    required
-                    placeholder="username"
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* Email Field */}
-                <div>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    placeholder="email"
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* Password Field */}
-                <div>
-                  <input
-                    type="password"
-                    id="accountPassword"
-                    name="accountPassword"
-                    value={formData.accountPassword}
-                    onChange={handleChange}
-                    required
-                    placeholder="password"
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all transform hover:scale-105 mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Creating Account...' : 'Sign Up'}
-                </button>
-              </form>
-            )}
-
-            {/* Sign In Link */}
-            <p className="text-center text-gray-600 dark:text-gray-400 mt-6">
-              Already have an account?{' '}
-              <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">
-                Sign In
-              </Link>
-            </p>
-          </div>
+    <main className="bg-[#002a8b] w-full min-w-[1440px] min-h-[1024px] relative overflow-hidden">
+      <section
+        aria-label="Sign up"
+        className="absolute top-0 left-0 w-[895px] h-[1024px] bg-[#f8f0e2] rounded-[0px_200px_200px_0px]"
+      />
+      <div className="absolute top-[104px] left-[161px] w-[168px] h-[67px] flex">
+        <div className="flex-1 w-[168px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#191818] text-[48.2px] tracking-[0] leading-[normal]">
+          nudge.
         </div>
       </div>
-    </div>
+      <form
+        className="flex flex-col w-[573px] items-start gap-[42px] absolute top-[154px] left-[161px]"
+        onSubmit={handleSubmit}
+      >
+        <h1 className="relative self-stretch mt-[-1.00px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[96.7px] tracking-[0] leading-[normal]">
+          signup
+        </h1>
+        {fields.map((field) => (
+          <label
+            key={field.id}
+            htmlFor={field.id}
+            className="flex h-[103px] items-center gap-[30px] px-[23.15px] py-[0px] relative self-stretch w-full ml-[-2.00px] mr-[-2.00px] bg-[#f8f0e2] rounded-[11.58px] border-2 border-solid border-[#002a8b] cursor-text"
+          >
+            <img
+              className={field.iconClassName}
+              alt=""
+              aria-hidden="true"
+              src={field.icon}
+            />
+            <div className="flex flex-col w-[327.59px] items-start relative">
+              <input
+                id={field.id}
+                name={field.name}
+                type={field.type}
+                aria-label={field.label}
+                autoComplete={field.name}
+                value={formData[field.name]}
+                onChange={(event) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    [field.name]: event.target.value,
+                  }))
+                }
+                className="[font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] placeholder:text-[#002a8b80] text-[27.8px] tracking-[0] leading-[normal] w-[327.59px]"
+                placeholder={field.label}
+              />
+            </div>
+          </label>
+        ))}
+
+        {errorMessage && (
+          <div className="flex w-full h-auto items-center justify-center px-[23.15px] py-[12px] relative bg-[#ff4444] rounded-[11.58px]">
+            <div className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#ffffff] text-[18px] text-center tracking-[0] leading-[normal]">
+              {errorMessage}
+            </div>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="flex w-full h-auto items-center justify-center px-[23.15px] py-[12px] relative bg-[#44ff44] rounded-[11.58px]">
+            <div className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#000000] text-[18px] text-center tracking-[0] leading-[normal]">
+              {successMessage}
+            </div>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex w-[573px] h-[99px] items-center justify-center gap-[30px] px-[23.15px] py-[0px] relative bg-[#002a8b80] hover:bg-[#002a8bcc] active:bg-[#002a8bff] transition-colors rounded-[11.58px] disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Sign Up"
+        >
+          <div className="flex flex-col w-[327.59px] items-center justify-center relative">
+            <div className="relative w-fit mt-[-1.00px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#d9d9d9] text-[27.8px] text-center tracking-[0] leading-[normal]">
+              {loading ? "Signing up..." : "Sign Up"}
+            </div>
+          </div>
+        </button>
+      </form>
+      <div className="flex w-[248px] items-center justify-between absolute top-[898px] left-[324px]">
+        <p className="relative w-fit mt-[-0.54px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[14.9px] tracking-[0] leading-[normal]">
+          already have an account?
+        </p>
+        <a
+          href="/login"
+          className="relative w-fit mt-[-0.54px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[14.9px] tracking-[0] leading-[normal]"
+        >
+          SIGN IN
+        </a>
+      </div>
+      <img
+        className="absolute top-[184px] left-[940px] w-[500px] h-[655px]"
+        alt="Illustration of a cat being petted"
+        src="/cat.png"
+      />
+      <img
+        className="absolute w-[140.55px] h-[152.51px] top-[13.57%] left-[69.63%]"
+        alt=""
+        aria-hidden="true"
+        src="/nudge.svg"
+      />
+    </main>
   );
-}
+};
+
+export default Signup;
