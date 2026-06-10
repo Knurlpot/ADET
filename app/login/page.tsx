@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FormEvent, useId, useState } from "react";
+import { FormEvent, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const formFields = [
@@ -9,18 +9,18 @@ const formFields = [
     label: "email",
     type: "email",
     icon: "/email.svg",
-    iconClassName: "relative w-[45px] h-[27px]",
+    iconClassName: "w-8 h-8 md:w-10 md:h-10",
     inputClassName:
-      "relative self-stretch mt-[-1.00px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] placeholder:text-[#002a8b80] text-[27.8px] tracking-[0] leading-[normal]",
+      "w-full bg-transparent outline-none text-[#002a8b] placeholder:text-[#002a8b80] text-lg md:text-xl",
   },
   {
     key: "accountPassword",
     label: "password",
     type: "password",
     icon: "/password.svg",
-    iconClassName: "relative w-[45px] h-[62.47px]",
+    iconClassName: "w-8 h-8 md:w-10 md:h-10",
     inputClassName:
-      "relative self-stretch mt-[-1.00px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] placeholder:text-[#002a8b80] text-[27.8px] tracking-[0] leading-[normal]",
+      "w-full bg-transparent outline-none text-[#002a8b] placeholder:text-[#002a8b80] text-lg md:text-xl",
   },
 ] as const;
 
@@ -28,6 +28,7 @@ export const Login = (): JSX.Element => {
   const router = useRouter();
   const emailId = useId();
   const passwordId = useId();
+
   const [formData, setFormData] = useState({
     email: "",
     accountPassword: "",
@@ -75,99 +76,117 @@ export const Login = (): JSX.Element => {
   };
 
   return (
-    <main className="bg-[#002a8b] w-full min-w-[1440px] min-h-[1024px] relative overflow-hidden">
+    <main className="relative min-h-screen w-full bg-[#002a8b] overflow-hidden">
+      {/* Left Background Panel */}
       <section
         aria-label="Login"
-        className="absolute top-0 left-0 w-[895px] h-[1024px] bg-[#f8f0e2] rounded-[0px_200px_200px_0px]"
+        className="absolute inset-y-0 left-0 w-full lg:w-[60%] bg-[#f8f0e2] lg:rounded-r-[120px]"
       />
+
+      {/* Decorative Nudge SVG */}
       <img
-        className="absolute top-[184px] left-[940px] w-[500px] h-[655px]"
-        alt="Illustration of a cat being petted"
-        src="/cat.png"
-      />
-      <img
-        className="absolute w-[140.55px] h-[152.51px] top-[13.57%] left-[69.63%]"
+        src="/nudge.svg"
         alt=""
         aria-hidden="true"
-        src="/nudge.svg"
+        className="absolute left-[65%] top-[15%] w-[100px] h-auto"
       />
-      <header className="absolute top-[169px] left-[161px] w-[168px] h-[67px] flex">
-        <div className="flex-1 w-[168px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#191818] text-[48.2px] tracking-[0] leading-[normal]">
-          nudge.
+      {/* Cat Illustration */}
+      <img
+        src="/cat.png"
+        alt="Illustration of a cat being petted"
+        className="hidden lg:block absolute right-0 bottom-0 max-w-[35vw] h-auto z-10"
+      />
+
+      {/* Content */}
+      <div className="relative z-20 flex min-h-screen items-center">
+        <div className="w-full lg:w-[60%] flex justify-center px-6 sm:px-10 lg:px-16">
+          <div className="w-full max-w-xl">
+            {/* Logo */}
+            <header className="mb-8">
+              <h2 className="font-bold text-[#191818] text-4xl md:text-5xl">
+                nudge.
+              </h2>
+            </header>
+
+            {/* Login Form */}
+            <section>
+              <h1 className="font-bold text-[#002a8b] text-5xl md:text-7xl mb-10">
+                login
+              </h1>
+
+              <form
+                onSubmit={handleSubmit}
+                className="flex flex-col gap-6"
+              >
+                {formFields.map((field) => (
+                  <label
+                    key={field.key}
+                    htmlFor={fieldIds[field.key]}
+                    className="flex items-center gap-4 px-6 py-5 bg-[#f8f0e2] rounded-xl border-2 border-[#002a8b] cursor-text"
+                  >
+                    <img
+                      src={field.icon}
+                      alt=""
+                      aria-hidden="true"
+                      className={field.iconClassName}
+                    />
+
+                    <div className="flex-1">
+                      <input
+                        id={fieldIds[field.key]}
+                        name={field.key}
+                        type={field.type}
+                        autoComplete={field.key}
+                        value={formData[field.key]}
+                        onChange={(event) =>
+                          setFormData((current) => ({
+                            ...current,
+                            [field.key]: event.target.value,
+                          }))
+                        }
+                        placeholder={field.label}
+                        aria-label={field.label}
+                        className={field.inputClassName}
+                      />
+                    </div>
+                  </label>
+                ))}
+
+                {errorMessage && (
+                  <div className="flex w-full h-auto items-center justify-center px-4 py-3 bg-red-500 rounded-xl">
+                    <div className="font-bold text-white text-sm text-center">
+                      {errorMessage}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-16 rounded-xl bg-[#002a8bcc] hover:bg-[#002a8b] transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="font-bold text-white text-lg md:text-xl">
+                    {loading ? "Logging in..." : "Log In"}
+                  </span>
+                </button>
+              </form>
+
+              {/* Sign Up */}
+              <div className="mt-6 flex items-center justify-center gap-1">
+                <p className="text-[#002a8b] text-sm">
+                  need an account?
+                </p>
+
+                <a
+                  href="/signup"
+                  className="font-bold text-[#002a8b] text-sm hover:underline"
+                >
+                  SIGN UP
+                </a>
+              </div>
+            </section>
+          </div>
         </div>
-      </header>
-      <section className="flex flex-col w-[573px] items-start gap-[42px] absolute top-[219px] left-[161px]">
-        <h1 className="relative self-stretch mt-[-1.00px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[96.7px] tracking-[0] leading-[normal]">
-          login
-        </h1>
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col w-full items-start gap-[42px]"
-        >
-          {formFields.map((field) => (
-            <label
-              key={field.key}
-              htmlFor={fieldIds[field.key]}
-              className="flex h-[103px] items-center gap-[30px] px-[23.15px] py-[0px] relative self-stretch w-full ml-[-2.00px] mr-[-2.00px] bg-[#f8f0e2] rounded-[11.58px] border-2 border-solid border-[#002a8b] cursor-text"
-            >
-              <img
-                className={field.iconClassName}
-                alt=""
-                aria-hidden="true"
-                src={field.icon}
-              />
-              <div className="flex flex-col w-[327.59px] items-start relative">
-                <input
-                  id={fieldIds[field.key]}
-                  name={field.key}
-                  type={field.type}
-                  autoComplete={field.key}
-                  value={formData[field.key]}
-                  onChange={(event) =>
-                    setFormData((current) => ({
-                      ...current,
-                      [field.key]: event.target.value,
-                    }))
-                  }
-                  placeholder={field.label}
-                  aria-label={field.label}
-                  className={`${field.inputClassName} w-full`}
-                />
-              </div>
-            </label>
-          ))}
-
-          {errorMessage && (
-            <div className="flex w-full h-auto items-center justify-center px-[23.15px] py-[12px] relative bg-[#ff4444] rounded-[11.58px]">
-              <div className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#ffffff] text-[18px] text-center tracking-[0] leading-[normal]">
-                {errorMessage}
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex w-[573px] h-[99px] items-center justify-center gap-[30px] px-[23.15px] py-[0px] relative bg-[#002a8b80] hover:bg-[#002a8bcc] active:bg-[#002a8bff] transition-colors rounded-[11.58px] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span className="flex flex-col w-[327.59px] items-center justify-center relative">
-              <span className="relative w-fit mt-[-1.00px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#d9d9d9] text-[27.8px] text-center tracking-[0] leading-[normal]">
-                {loading ? "Logging in..." : "Log In"}
-              </span>
-            </span>
-          </button>
-        </form>
-      </section>
-      <div className="inline-flex items-center gap-[3.96px] absolute top-[818px] left-[351px]">
-        <p className="relative w-fit mt-[-0.54px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[14.9px] tracking-[0] leading-[normal]">
-          need an account?
-        </p>
-        <a
-          href="/signup"
-          className="relative w-fit mt-[-0.54px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[14.9px] tracking-[0] leading-[normal]"
-        >
-          SIGN UP
-        </a>
       </div>
     </main>
   );

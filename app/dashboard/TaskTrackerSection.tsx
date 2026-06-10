@@ -45,7 +45,7 @@ export const TaskTrackerSection = (): JSX.Element => {
   return (
     <section
       aria-labelledby="task-tracker-heading"
-      className="absolute top-[212px] left-[516px] w-[387px] h-[371px]"
+      className="absolute top-[212px] left-[450px] sm:left-[516px] w-[calc(100vw-480px)] sm:w-[387px] h-auto sm:h-[371px] max-w-[400px]"
     >
       <div className="absolute top-0 left-0 w-[385px] h-[371px] flex bg-[#f8f0e2] rounded-[25.5px] border-[2.55px] border-solid border-[#002a8b]" />
       <div className="absolute top-0 left-0 w-[385px] h-[371px]">

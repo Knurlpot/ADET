@@ -1,10 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type NavItem = {
   label: string;
   icon: string;
+  darkIcon?: string;
+  lightIcon?: string;
   iconClassName: string;
   top: string;
   active?: boolean;
@@ -14,21 +17,24 @@ const generalItems: NavItem[] = [
   {
     label: "Dashboard",
     icon: "/dashboard.svg",
-    iconClassName: "relative w-7 h-[28.01px]",
-    top: "top-[243px]",
+    lightIcon: "/DashboardLight.svg",
+    iconClassName: "relative w-7 h-[25.01px]",
+    top: "top-[190px]",
     active: true,
   },
   {
     label: "My Tasks",
     icon: "/tasks.svg",
-    iconClassName: "relative w-[27.93px] h-[37.67px]",
-    top: "top-[312px]",
+    darkIcon: "/TasksDark.svg",
+    iconClassName: "relative w-[27.93px] h-[35.67px]",
+    top: "top-[250px]",
   },
   {
     label: "Pomodoro Timer",
     icon: "/pomodoro.svg",
-    iconClassName: "relative w-[27.93px] h-[30.44px]",
-    top: "top-[389px]",
+    darkIcon: "/TimerDark.svg",
+    iconClassName: "relative w-[27.93px] h-[28.44px]",
+    top: "top-[320px]",
   },
 ];
 
@@ -36,19 +42,22 @@ const otherItems: NavItem[] = [
   {
     label: "Settings",
     icon: "/settings.svg",
-    iconClassName: "relative w-[29.2px] h-[29.24px]",
-    top: "top-[769px]",
+    darkIcon: "/SettingsDark.svg",
+    iconClassName: "relative w-[29.2px] h-[27.24px]",
+    top: "top-[490px]",
   },
   {
     label: "Log out",
     icon: "/logout.svg",
-    iconClassName: "relative w-7 h-[36.29px]",
-    top: "top-[841px]",
+    iconClassName: "relative w-7 h-[34.29px]",
+    top: "top-[550px]",
   },
 ];
 
 export const SidebarNavigationSection = (): JSX.Element => {
   const router = useRouter();
+  const [activeButton, setActiveButton] = useState<string>("Dashboard");
+  const [hoveredButton, setHoveredButton] = useState<string | null>(null);
 
   const handleLogout = () => {
     localStorage.removeItem("userId");
@@ -57,10 +66,36 @@ export const SidebarNavigationSection = (): JSX.Element => {
     router.push("/login");
   };
 
+  const handleButtonClick = (label: string) => {
+    if (label !== "Log out") {
+      setActiveButton(label);
+    }
+  };
+
+  const getIconSrc = (item: NavItem, isActive: boolean, isHovered: boolean) => {
+    // Dashboard uses light icon when not active
+    if (item.label === "Dashboard" && !isActive) {
+      return item.lightIcon || item.icon;
+    }
+    // Other items with dark icons use them when active or hovered
+    if ((isActive || isHovered) && item.darkIcon) {
+      return item.darkIcon;
+    }
+    return item.icon;
+  };
+
+  const getIconFilter = (item: NavItem, isActive: boolean, isHovered: boolean) => {
+    // Logout icon should change to dark blue on hover
+    if (item.label === "Log out" && isHovered) {
+      return "brightness(0) saturate(100%) invert(25%) sepia(98%) saturate(3270%) hue-rotate(237deg)";
+    }
+    return "none";
+  };
+
   return (
     <aside
       aria-label="Sidebar navigation"
-      className="fixed top-6 left-10 w-[411px] h-[1000px]"
+      className="fixed top-6 left-10 w-[411px] h-[650px]"
     >
       <div
         aria-hidden="true"
@@ -71,75 +106,97 @@ export const SidebarNavigationSection = (): JSX.Element => {
           nudge.
         </div>
       </div>
-      <div className="absolute top-[196px] left-12 [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] text-[21.5px] text-center tracking-[0] leading-[normal]">
+      <div className="absolute top-[140px] left-12 [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] text-[21.5px] text-center tracking-[0] leading-[normal]">
         General
       </div>
       <nav aria-label="General navigation">
         <ul className="m-0 p-0 list-none">
-          {generalItems.map((item) => (
-            <li key={item.label}>
-              <button
-                type="button"
-                aria-current={item.active ? "page" : undefined}
-                className={`flex w-[335px] items-center gap-[30.22px] p-[12.09px] absolute ${item.top} left-9 rounded-[6.04px] ${
-                  item.active ? "bg-[#f8f0e2]" : ""
-                }`}
-              >
-                <img
-                  className={item.iconClassName}
-                  alt=""
-                  aria-hidden="true"
-                  src={item.icon}
-                />
-                <div
-                  className={`relative w-fit text-[21.5px] text-center tracking-[0] leading-[normal] ${
-                    item.active
-                      ? "mt-[-0.46px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b]"
-                      : item.label === "Pomodoro Timer"
-                        ? "mt-[-0.25px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2]"
-                        : "[font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2]"
+          {generalItems.map((item) => {
+            const isActive = activeButton === item.label;
+            const isHovered = hoveredButton === item.label;
+            return (
+              <li key={item.label}>
+                <button
+                  type="button"
+                  onClick={() => handleButtonClick(item.label)}
+                  onMouseEnter={() => setHoveredButton(item.label)}
+                  onMouseLeave={() => setHoveredButton(null)}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`group flex w-[335px] items-center gap-[30.22px] p-[12.09px] absolute ${item.top} left-9 rounded-[6.04px] transition-all duration-200 ${
+                    isActive ? "bg-[#f8f0e2]" : "hover:bg-[#f8f0e2]"
                   }`}
                 >
-                  {item.label}
-                </div>
-              </button>
-            </li>
-          ))}
+                  <img
+                    className={item.iconClassName}
+                    alt=""
+                    aria-hidden="true"
+                    src={getIconSrc(item, isActive, isHovered)}
+                    style={{ filter: getIconFilter(item, isActive, isHovered) }}
+                  />
+                  <div
+                    className={`relative w-fit text-[21.5px] text-center tracking-[0] leading-[normal] transition-all duration-200 ${
+                      isActive
+                        ? "mt-[-0.46px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b]"
+                        : item.label === "Pomodoro Timer"
+                          ? "mt-[-0.25px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] group-hover:text-[#002a8b]"
+                          : "[font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] group-hover:text-[#002a8b]"
+                    }`}
+                  >
+                    {item.label}
+                  </div>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </nav>
-      <div className="absolute top-[727px] left-12 [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] text-[21.5px] text-center tracking-[0] leading-[normal]">
+      <div className="absolute top-[445px] left-12 [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] text-[21.5px] text-center tracking-[0] leading-[normal]">
         Other
       </div>
       <nav aria-label="Other navigation">
         <ul className="m-0 p-0 list-none">
-          {otherItems.map((item) => (
-            <li key={item.label}>
-              <button
-                type="button"
-                onClick={item.label === "Log out" ? handleLogout : undefined}
-                className={`flex w-[335px] items-center gap-[30.22px] p-[12.09px] absolute ${item.top} left-9 rounded-[6.04px]`}
-              >
-                <img
-                  className={item.iconClassName}
-                  alt=""
-                  aria-hidden="true"
-                  src={item.icon}
-                />
-                <div
-                  className={`relative w-fit [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] text-[21.5px] text-center tracking-[0] leading-[normal] ${
-                    item.label === "Settings" ? "mt-[-0.46px]" : ""
+          {otherItems.map((item) => {
+            const isActive = activeButton === item.label;
+            const isHovered = hoveredButton === item.label;
+            return (
+              <li key={item.label}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleButtonClick(item.label);
+                    if (item.label === "Log out") handleLogout();
+                  }}
+                  onMouseEnter={() => setHoveredButton(item.label)}
+                  onMouseLeave={() => setHoveredButton(null)}
+                  className={`group flex w-[335px] items-center gap-[30.22px] p-[12.09px] absolute ${item.top} left-9 rounded-[6.04px] transition-all duration-200 ${
+                    isActive ? "bg-[#f8f0e2]" : "hover:bg-[#f8f0e2]"
                   }`}
                 >
-                  {item.label}
-                </div>
-              </button>
-            </li>
-          ))}
+                  <img
+                    className={item.iconClassName}
+                    alt=""
+                    aria-hidden="true"
+                    src={getIconSrc(item, isActive, isHovered)}
+                    style={{ filter: getIconFilter(item, isActive, isHovered) }}
+                  />
+                  <div
+                    className={`relative w-fit [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[21.5px] text-center tracking-[0] leading-[normal] transition-all duration-200 ${
+                      isActive
+                        ? "text-[#002a8b] font-bold"
+                        : "text-[#f8f0e2] group-hover:text-[#002a8b]"
+                    } ${item.label === "Settings" ? "mt-[-0.46px]" : ""}`}
+                  >
+                    {item.label}
+                  </div>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </nav>
       <div
         aria-hidden="true"
-        className="absolute top-[945px] left-28 w-[183px] h-[7px] bg-[#d9d9d9] rounded-[10px]"
+        className="absolute top-[600px] left-28 w-[183px] h-[7px] bg-[#d9d9d9] rounded-[10px]"
       />
     </aside>
   );

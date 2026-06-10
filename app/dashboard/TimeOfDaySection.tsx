@@ -6,7 +6,7 @@ export const TimeOfDaySection = (): JSX.Element => {
   return (
     <section
       aria-labelledby="time-of-day-title"
-      className="absolute top-[598px] left-[516px] w-[257px] h-[305px]"
+      className="absolute top-[598px] left-[450px] sm:left-[516px] w-[calc(100vw-480px)] sm:w-[257px] h-auto sm:h-[305px] max-w-[300px]"
     >
       <div className="relative w-[257px] h-[305px]">
         <div

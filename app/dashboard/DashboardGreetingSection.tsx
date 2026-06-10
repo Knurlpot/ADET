@@ -16,7 +16,7 @@ export const DashboardGreetingSection = ({ username }: { username: string }): JS
 
   return (
     <header
-      className="inline-flex items-center gap-[7.15px] fixed top-[77px] left-[516px]"
+      className="inline-flex items-center gap-[7.15px] fixed top-[77px] left-[450px] sm:left-[516px]"
       aria-label="Dashboard greeting"
     >
       <h1 className="inline-flex items-center gap-[7.15px] m-0 p-0 not-italic">

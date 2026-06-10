@@ -40,7 +40,7 @@ export const Dashboard = (): JSX.Element => {
       </section>
 
       <div
-        className="fixed top-0 left-0 w-[1440px] h-[212px] bg-[#f8f0e2] blur-[20px]"
+        className="fixed top-0 left-0 right-0 w-full h-[212px] bg-[#f8f0e2] blur-[20px]"
         aria-hidden="true"
       />
 
@@ -52,7 +52,7 @@ export const Dashboard = (): JSX.Element => {
         <DashboardGreetingSection username={username} />
       </section>
 
-      <div className="inline-flex flex-col items-center justify-center gap-2.5 px-5 py-2.5 fixed top-20 left-[1192px] bg-[#002a8b] rounded-[15px]">
+      <div className="inline-flex flex-col items-center justify-center gap-2.5 px-5 py-2.5 fixed top-20 right-4 sm:right-8 bg-[#002a8b] rounded-[15px]">
         <div className="flex items-center gap-5 relative self-stretch w-full flex-[0_0_auto]">
           <img
             className="relative w-[19.19px] h-[20.13px]"

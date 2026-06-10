@@ -1,20 +1,44 @@
 'use client';
 
-import React, { FormEvent, useId, useState } from "react";
+import { FormEvent, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type FieldConfig = {
-  id: string;
-  name: "username" | "email" | "accountPassword";
-  type: string;
-  label: string;
-  icon: string;
-  iconClassName: string;
-};
+const formFields = [
+  {
+    key: "username",
+    label: "username",
+    type: "text",
+    icon: "/username.svg",
+    iconClassName: "w-8 h-8 md:w-10 md:h-10",
+    inputClassName:
+      "w-full bg-transparent outline-none text-[#002a8b] placeholder:text-[#002a8b80] text-lg md:text-xl",
+  },
+  {
+    key: "email",
+    label: "email",
+    type: "email",
+    icon: "/email.svg",
+    iconClassName: "w-8 h-8 md:w-10 md:h-10",
+    inputClassName:
+      "w-full bg-transparent outline-none text-[#002a8b] placeholder:text-[#002a8b80] text-lg md:text-xl",
+  },
+  {
+    key: "accountPassword",
+    label: "password",
+    type: "password",
+    icon: "/password.svg",
+    iconClassName: "w-8 h-8 md:w-10 md:h-10",
+    inputClassName:
+      "w-full bg-transparent outline-none text-[#002a8b] placeholder:text-[#002a8b80] text-lg md:text-xl",
+  },
+] as const;
 
 export const Signup = (): JSX.Element => {
   const router = useRouter();
-  const formId = useId();
+  const usernameId = useId();
+  const emailId = useId();
+  const passwordId = useId();
+
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -23,32 +47,11 @@ export const Signup = (): JSX.Element => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const fields: FieldConfig[] = [
-    {
-      id: `${formId}-username`,
-      name: "username",
-      type: "text",
-      label: "username",
-      icon: "/username.svg",
-      iconClassName: "relative w-[45px] h-[47.22px]",
-    },
-    {
-      id: `${formId}-email`,
-      name: "email",
-      type: "email",
-      label: "email",
-      icon: "/email.svg",
-      iconClassName: "relative w-[45px] h-[27px]",
-    },
-    {
-      id: `${formId}-password`,
-      name: "accountPassword",
-      type: "password",
-      label: "password",
-      icon: "/password.svg",
-      iconClassName: "relative w-[45px] h-[62.47px]",
-    },
-  ];
+  const fieldIds: Record<string, string> = {
+    username: usernameId,
+    email: emailId,
+    accountPassword: passwordId,
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -83,99 +86,119 @@ export const Signup = (): JSX.Element => {
   };
 
   return (
-    <main className="bg-[#002a8b] w-full min-w-[1440px] min-h-[1024px] relative overflow-hidden">
+    <main className="relative min-h-screen w-full bg-[#002a8b] overflow-hidden">
+      {/* Left Background Panel */}
       <section
         aria-label="Sign up"
-        className="absolute top-0 left-0 w-[895px] h-[1024px] bg-[#f8f0e2] rounded-[0px_200px_200px_0px]"
+        className="absolute inset-y-0 left-0 w-full lg:w-[60%] bg-[#f8f0e2] lg:rounded-r-[120px]"
       />
-      <div className="absolute top-[104px] left-[161px] w-[168px] h-[67px] flex">
-        <div className="flex-1 w-[168px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#191818] text-[48.2px] tracking-[0] leading-[normal]">
-          nudge.
-        </div>
-      </div>
-      <form
-        className="flex flex-col w-[573px] items-start gap-[42px] absolute top-[154px] left-[161px]"
-        onSubmit={handleSubmit}
-      >
-        <h1 className="relative self-stretch mt-[-1.00px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[96.7px] tracking-[0] leading-[normal]">
-          signup
-        </h1>
-        {fields.map((field) => (
-          <label
-            key={field.id}
-            htmlFor={field.id}
-            className="flex h-[103px] items-center gap-[30px] px-[23.15px] py-[0px] relative self-stretch w-full ml-[-2.00px] mr-[-2.00px] bg-[#f8f0e2] rounded-[11.58px] border-2 border-solid border-[#002a8b] cursor-text"
-          >
-            <img
-              className={field.iconClassName}
-              alt=""
-              aria-hidden="true"
-              src={field.icon}
-            />
-            <div className="flex flex-col w-[327.59px] items-start relative">
-              <input
-                id={field.id}
-                name={field.name}
-                type={field.type}
-                aria-label={field.label}
-                autoComplete={field.name}
-                value={formData[field.name]}
-                onChange={(event) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    [field.name]: event.target.value,
-                  }))
-                }
-                className="[font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] placeholder:text-[#002a8b80] text-[27.8px] tracking-[0] leading-[normal] w-[327.59px]"
-                placeholder={field.label}
-              />
-            </div>
-          </label>
-        ))}
 
-        {errorMessage && (
-          <div className="flex w-full h-auto items-center justify-center px-[23.15px] py-[12px] relative bg-[#ff4444] rounded-[11.58px]">
-            <div className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#ffffff] text-[18px] text-center tracking-[0] leading-[normal]">
-              {errorMessage}
-            </div>
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex w-[573px] h-[99px] items-center justify-center gap-[30px] px-[23.15px] py-[0px] relative bg-[#002a8b80] hover:bg-[#002a8bcc] active:bg-[#002a8bff] transition-colors rounded-[11.58px] disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Sign Up"
-        >
-          <div className="flex flex-col w-[327.59px] items-center justify-center relative">
-            <div className="relative w-fit mt-[-1.00px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#d9d9d9] text-[27.8px] text-center tracking-[0] leading-[normal]">
-              {loading ? "Signing up..." : "Sign Up"}
-            </div>
-          </div>
-        </button>
-      </form>
-      <div className="flex w-[248px] items-center justify-between absolute top-[898px] left-[324px]">
-        <p className="relative w-fit mt-[-0.54px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[14.9px] tracking-[0] leading-[normal]">
-          already have an account?
-        </p>
-        <a
-          href="/login"
-          className="relative w-fit mt-[-0.54px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[14.9px] tracking-[0] leading-[normal]"
-        >
-          SIGN IN
-        </a>
-      </div>
+      {/* Decorative Nudge SVG */}
       <img
-        className="absolute top-[184px] left-[940px] w-[500px] h-[655px]"
-        alt="Illustration of a cat being petted"
-        src="/cat.png"
-      />
-      <img
-        className="absolute w-[140.55px] h-[152.51px] top-[13.57%] left-[69.63%]"
+        src="/nudge.svg"
         alt=""
         aria-hidden="true"
-        src="/nudge.svg"
+        className="absolute left-[65%] top-[15%] w-[100px] h-auto"
       />
+
+      {/* Cat Illustration */}
+      <img
+        src="/cat.png"
+        alt="Illustration of a cat being petted"
+        className="hidden lg:block absolute right-0 bottom-0 max-w-[35vw] h-auto z-10"
+      />
+
+      {/* Content */}
+      <div className="relative z-20 flex min-h-screen items-center">
+        <div className="w-full lg:w-[60%] flex justify-center px-6 sm:px-10 lg:px-16">
+          <div className="w-full max-w-xl">
+            {/* Logo */}
+            <header className="mb-8">
+              <h2 className="font-bold text-[#191818] text-4xl md:text-5xl">
+                nudge.
+              </h2>
+            </header>
+
+            {/* Signup Form */}
+            <section>
+              <h1 className="font-bold text-[#002a8b] text-5xl md:text-7xl mb-10">
+                signup
+              </h1>
+
+              <form
+                onSubmit={handleSubmit}
+                className="flex flex-col gap-6"
+              >
+                {formFields.map((field) => (
+                  <label
+                    key={field.key}
+                    htmlFor={fieldIds[field.key]}
+                    className="flex items-center gap-4 px-6 py-5 bg-[#f8f0e2] rounded-xl border-2 border-[#002a8b] cursor-text"
+                  >
+                    <img
+                      src={field.icon}
+                      alt=""
+                      aria-hidden="true"
+                      className={field.iconClassName}
+                    />
+
+                    <div className="flex-1">
+                      <input
+                        id={fieldIds[field.key]}
+                        name={field.key}
+                        type={field.type}
+                        autoComplete={field.key}
+                        value={formData[field.key as keyof typeof formData]}
+                        onChange={(event) =>
+                          setFormData((current) => ({
+                            ...current,
+                            [field.key]: event.target.value,
+                          }))
+                        }
+                        placeholder={field.label}
+                        aria-label={field.label}
+                        className={field.inputClassName}
+                      />
+                    </div>
+                  </label>
+                ))}
+
+                {errorMessage && (
+                  <div className="flex w-full h-auto items-center justify-center px-4 py-3 bg-red-500 rounded-xl">
+                    <div className="font-bold text-white text-sm text-center">
+                      {errorMessage}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-16 rounded-xl bg-[#002a8bcc] hover:bg-[#002a8b] transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="font-bold text-white text-lg md:text-xl">
+                    {loading ? "Signing up..." : "Sign Up"}
+                  </span>
+                </button>
+              </form>
+
+              {/* Sign In */}
+              <div className="mt-6 flex items-center justify-center gap-1">
+                <p className="text-[#002a8b] text-sm">
+                  already have an account?
+                </p>
+
+                <a
+                  href="/login"
+                  className="font-bold text-[#002a8b] text-sm hover:underline"
+                >
+                  SIGN IN
+                </a>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
     </main>
   );
 };

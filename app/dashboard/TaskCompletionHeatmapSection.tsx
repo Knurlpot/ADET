@@ -56,7 +56,7 @@ export const TaskCompletionHeatmapSection = (): JSX.Element => {
   return (
     <section
       aria-labelledby="task-completion-heatmap-title"
-      className="absolute top-[212px] left-[917px] w-[456px] h-[371px]"
+      className="absolute top-[212px] left-[900px] sm:left-[917px] w-[calc(100vw-930px)] sm:w-[456px] h-auto sm:h-[371px] max-w-[470px]"
     >
       <div className="absolute top-0 left-0 w-[454px] h-[371px] rounded-[25.5px] border-[2.55px] border-solid border-[#002a8b] bg-[#f8f0e2]" />
       <div className="absolute top-[37px] left-8 w-[395px]">

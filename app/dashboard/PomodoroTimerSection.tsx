@@ -65,7 +65,7 @@ export const PomodoroTimerSection = (): JSX.Element => {
   return (
     <section
       aria-labelledby="pomodoro-timer-heading"
-      className="absolute top-[598px] left-[785px] w-[592px] h-[305px]"
+      className="absolute top-[598px] left-[750px] sm:left-[785px] w-[calc(100vw-780px)] sm:w-[592px] h-auto sm:h-[305px] max-w-[600px]"
     >
       <div className="absolute top-0 left-0 w-[586px] h-[305px] bg-[#f8f0e2] rounded-[25.5px] border-[2.55px] border-solid border-[#002a8b]" />
       <h2
