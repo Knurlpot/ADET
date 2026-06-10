@@ -80,7 +80,7 @@ export const PomodoroTimerSection = (): JSX.Element => {
       <div
         aria-live="polite"
         aria-atomic="true"
-        className="absolute top-[67px] left-[43px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#0038b4] text-[70px] tracking-[0] leading-[normal]"
+        className="absolute top-[67px] left-[43px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#0038b4] text-[120px] tracking-[0] leading-[normal]"
       >
         {formattedTime}
       </div>

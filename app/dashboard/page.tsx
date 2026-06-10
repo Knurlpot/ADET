@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { DashboardGreetingSection } from "./DashboardGreetingSection";
 import { PomodoroTimerSection } from "./PomodoroTimerSection";
 import { SidebarNavigationSection } from "./SidebarNavigationSection";
@@ -11,14 +11,19 @@ import { TimeOfDaySection } from "./TimeOfDaySection";
 
 export const Dashboard = (): JSX.Element => {
   const [username, setUsername] = useState<string>("");
+  const [taskInput, setTaskInput] = useState<string>("");
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
 
   useEffect(() => {
     const storedUsername = localStorage.getItem("userUsername") || "User";
     setUsername(storedUsername);
   }, []);
 
-  const handleAddTask = () => {
-    return;
+  const handleAddTask = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const normalizedValue = taskInput.trim();
+    if (!normalizedValue) return;
+    setTaskInput("");
   };
 
   return (
@@ -70,15 +75,36 @@ export const Dashboard = (): JSX.Element => {
         <SidebarNavigationSection />
       </aside>
 
-      <button
-        type="button"
-        onClick={handleAddTask}
-        className="flex w-[855px] h-[50px] items-center justify-center gap-[4.41px] px-[22.06px] py-[4.41px] absolute top-[926px] left-[516px] rounded-[22.06px] bg-[linear-gradient(0deg,rgba(0,42,139,1)_0%,rgba(0,42,139,1)_100%),linear-gradient(0deg,rgba(255,255,255,1)_0%,rgba(255,255,255,1)_100%)] cursor-pointer"
-      >
-        <span className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#f8f0e2] text-[21.3px] tracking-[0] leading-[normal]">
-          add task!
-        </span>
-      </button>
+      <section aria-label="Pomodoro controls">
+        <div className="absolute top-[713px] left-[1070px] w-[295px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[106.1px] tracking-[0] leading-[normal]">
+
+        </div>
+      </section>
+
+      <form onSubmit={handleAddTask} className="contents">
+        <label htmlFor="task-input" className="sr-only">
+          Add task
+        </label>
+        <input
+          id="task-input"
+          name="task"
+          type="text"
+          value={taskInput}
+          onChange={(event) => setTaskInput(event.target.value)}
+          placeholder="Add a task"
+          className="absolute opacity-0 pointer-events-none"
+          aria-hidden="true"
+          tabIndex={-1}
+        />
+        <button
+          type="submit"
+          className="flex w-[855px] h-[50px] items-center justify-center gap-[4.41px] px-[22.06px] py-[4.41px] absolute top-[926px] left-[516px] rounded-[22.06px] bg-[linear-gradient(0deg,rgba(0,42,139,1)_0%,rgba(0,42,139,1)_100%),linear-gradient(0deg,rgba(255,255,255,1)_0%,rgba(255,255,255,1)_100%)] cursor-pointer"
+        >
+          <span className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#f8f0e2] text-[21.3px] tracking-[0] leading-[normal]">
+            add task!
+          </span>
+        </button>
+      </form>
     </main>
   );
 };
