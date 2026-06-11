@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import { DashboardGreetingSection } from "@/app/components/DashboardGreetingSection";
-import { PomodoroTimerSection } from "./PomodoroTimerSection";
+import { PomodoroTimerSection } from "@/app/components/PomodoroTimerSection";
 import { SidebarNavigationSection } from "@/app/components/SidebarNavigationSection";
-import { TaskCompletionHeatmapSection } from "./TaskCompletionHeatmapSection";
-import { TaskSummarySection } from "./TaskSummarySection";
-import { TaskTrackerSection } from "./TaskTrackerSection";
-import { TimeOfDaySection } from "./TimeOfDaySection";
+import { TaskCompletionHeatmapSection } from "@/app/components/TaskCompletionHeatmapSection";
+import { TaskSummarySection } from "@/app/components/TaskSummarySection";
+import { TaskTrackerSection } from "@/app/components/TaskTrackerSection";
+import { TimeOfDaySection } from "@/app/components/TimeOfDaySection";
 
 export const Dashboard = (): JSX.Element => {
   const [username, setUsername] = useState<string>("");

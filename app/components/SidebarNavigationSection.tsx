@@ -49,6 +49,7 @@ const otherItems: NavItem[] = [
   {
     label: "Log out",
     icon: "/logout.svg",
+    darkIcon: "/LogoutDark.svg", // Updated to use the new vector asset for hover/active states
     iconClassName: "relative w-7 h-[34.29px]",
     top: "top-[550px]",
   },
@@ -91,19 +92,11 @@ export const SidebarNavigationSection = (): JSX.Element => {
     if (item.label === "Dashboard" && !isActive) {
       return item.lightIcon || item.icon;
     }
-    // Other items with dark icons use them when active or hovered
+    // Other items (including Log out) with dark vector icons use them when active or hovered
     if ((isActive || isHovered) && item.darkIcon) {
       return item.darkIcon;
     }
     return item.icon;
-  };
-
-  const getIconFilter = (item: NavItem, isActive: boolean, isHovered: boolean) => {
-    // Logout icon should change to dark blue on hover
-    if (item.label === "Log out" && isHovered) {
-      return "brightness(0) saturate(100%) invert(25%) sepia(98%) saturate(3270%) hue-rotate(237deg)";
-    }
-    return "none";
   };
 
   return (
@@ -145,7 +138,6 @@ export const SidebarNavigationSection = (): JSX.Element => {
                     alt=""
                     aria-hidden="true"
                     src={getIconSrc(item, isActive, isHovered)}
-                    style={{ filter: getIconFilter(item, isActive, isHovered) }}
                   />
                   <div
                     className={`relative w-fit text-[21.5px] text-center tracking-[0] leading-[normal] transition-all duration-200 ${
@@ -192,7 +184,6 @@ export const SidebarNavigationSection = (): JSX.Element => {
                     alt=""
                     aria-hidden="true"
                     src={getIconSrc(item, isActive, isHovered)}
-                    style={{ filter: getIconFilter(item, isActive, isHovered) }}
                   />
                   <div
                     className={`relative w-fit [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[21.5px] text-center tracking-[0] leading-[normal] transition-all duration-200 ${
