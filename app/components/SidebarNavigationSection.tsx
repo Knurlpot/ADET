@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 type NavItem = {
   label: string;
@@ -56,8 +56,19 @@ const otherItems: NavItem[] = [
 
 export const SidebarNavigationSection = (): JSX.Element => {
   const router = useRouter();
+  const pathname = usePathname();
   const [activeButton, setActiveButton] = useState<string>("Dashboard");
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (pathname === "/settings") {
+      setActiveButton("Settings");
+    } else if (pathname === "/dashboard") {
+      setActiveButton("Dashboard");
+    } else {
+      setActiveButton("Dashboard");
+    }
+  }, [pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem("userId");
@@ -69,6 +80,9 @@ export const SidebarNavigationSection = (): JSX.Element => {
   const handleButtonClick = (label: string) => {
     if (label !== "Log out") {
       setActiveButton(label);
+      if (label === "Dashboard") {
+        router.push("/dashboard");
+      }
     }
   };
 
@@ -165,6 +179,7 @@ export const SidebarNavigationSection = (): JSX.Element => {
                   onClick={() => {
                     handleButtonClick(item.label);
                     if (item.label === "Log out") handleLogout();
+                    if (item.label === "Settings") router.push("/settings");
                   }}
                   onMouseEnter={() => setHoveredButton(item.label)}
                   onMouseLeave={() => setHoveredButton(null)}

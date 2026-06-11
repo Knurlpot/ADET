@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { DashboardGreetingSection } from "./DashboardGreetingSection";
+import { DashboardGreetingSection } from "@/app/components/DashboardGreetingSection";
 import { PomodoroTimerSection } from "./PomodoroTimerSection";
-import { SidebarNavigationSection } from "./SidebarNavigationSection";
+import { SidebarNavigationSection } from "@/app/components/SidebarNavigationSection";
 import { TaskCompletionHeatmapSection } from "./TaskCompletionHeatmapSection";
 import { TaskSummarySection } from "./TaskSummarySection";
 import { TaskTrackerSection } from "./TaskTrackerSection";
@@ -13,11 +13,40 @@ export const Dashboard = (): JSX.Element => {
   const [username, setUsername] = useState<string>("");
   const [taskInput, setTaskInput] = useState<string>("");
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
   useEffect(() => {
-    const storedUsername = localStorage.getItem("userUsername") || "User";
-    setUsername(storedUsername);
+    setIsMounted(true);
+    fetchUserData();
   }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        setUsername("User");
+        return;
+      }
+
+      const response = await fetch(`/api/settings?userId=${userId}`);
+      const data = await response.json();
+
+      if (response.ok && data.user) {
+        setUsername(data.user.Username || "User");
+        // Update localStorage with the latest username from database
+        localStorage.setItem("userUsername", data.user.Username);
+      } else {
+        // Fallback to localStorage if fetch fails
+        const storedUsername = localStorage.getItem("userUsername") || "User";
+        setUsername(storedUsername);
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      // Fallback to localStorage if fetch fails
+      const storedUsername = localStorage.getItem("userUsername") || "User";
+      setUsername(storedUsername);
+    }
+  };
 
   const handleAddTask = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -53,9 +82,11 @@ export const Dashboard = (): JSX.Element => {
         <TaskSummarySection />
       </section>
 
-      <section aria-label="Dashboard greeting">
-        <DashboardGreetingSection username={username} />
-      </section>
+      {isMounted && (
+        <section aria-label="Dashboard greeting">
+          <DashboardGreetingSection username={username} />
+        </section>
+      )}
 
       <div className="inline-flex flex-col items-center justify-center gap-2.5 px-5 py-2.5 fixed top-20 right-4 sm:right-8 bg-[#002a8b] rounded-[15px]">
         <div className="flex items-center gap-5 relative self-stretch w-full flex-[0_0_auto]">
@@ -66,7 +97,7 @@ export const Dashboard = (): JSX.Element => {
             src="/user.svg"
           />
           <div className="mt-[-1.00px] text-[#f8f0e2] text-[15px] relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold tracking-[0] leading-[normal]">
-            {username}
+            {isMounted ? username : ""}
           </div>
         </div>
       </div>
