@@ -44,14 +44,14 @@ const otherItems: NavItem[] = [
     icon: "/settings.svg",
     darkIcon: "/SettingsDark.svg",
     iconClassName: "relative w-[29.2px] h-[27.24px]",
-    top: "top-[490px]",
+    top: "top-[790px]",
   },
   {
     label: "Log out",
     icon: "/logout.svg",
     darkIcon: "/LogoutDark.svg", // Updated to use the new vector asset for hover/active states
     iconClassName: "relative w-7 h-[34.29px]",
-    top: "top-[550px]",
+    top: "top-[850px]",
   },
 ];
 
@@ -156,7 +156,7 @@ export const SidebarNavigationSection = (): JSX.Element => {
           })}
         </ul>
       </nav>
-      <div className="absolute top-[445px] left-12 [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] text-[21.5px] text-center tracking-[0] leading-[normal]">
+      <div className="absolute top-[750px] left-12 [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] text-[21.5px] text-center tracking-[0] leading-[normal]">
         Other
       </div>
       <nav aria-label="Other navigation">
@@ -202,7 +202,7 @@ export const SidebarNavigationSection = (): JSX.Element => {
       </nav>
       <div
         aria-hidden="true"
-        className="absolute top-[600px] left-28 w-[183px] h-[7px] bg-[#d9d9d9] rounded-[10px]"
+        className="absolute top-[920px] left-28 w-[183px] h-[7px] bg-[#d9d9d9] rounded-[10px]"
       />
     </aside>
   );
