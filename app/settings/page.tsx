@@ -61,7 +61,6 @@ export default function SettingsPage() {
     setIsMounted(true);
     fetchUserData();
 
-    // Matching the exact blueprint scale ratio logic from the Dashboard
     const updateScale = () => {
       setScale(Math.min(window.innerWidth / 1440, window.innerHeight / 1024));
     };
@@ -179,14 +178,16 @@ export default function SettingsPage() {
         <div className="bg-[#f8f0e2] w-full min-w-[1440px] min-h-[1024px] flex relative">
           <div className="fixed top-0 left-0 right-0 w-full h-[212px] bg-[#f8f0e2] blur-[20px]" aria-hidden="true" />
           <header className="contents">
+            {/* Added px-8 to position class to match the main layout spacing */}
             <DashboardGreetingSection
               username=""
               greetingText="settings"
               showUsername={false}
-              position="fixed top-[77px] left-[500px] sm:left-[566px]"
+              position="fixed top-[77px] left-[500px] sm:left-[566px] px-8"
               ariaLabel="Settings page header"
             />
-            <p className="fixed top-[130px] left-[500px] sm:left-[566px] w-[400px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#00000080] text-[15px] tracking-[0] leading-[normal]">
+            {/* Added px-8 to match left alignments */}
+            <p className="fixed top-[130px] left-[500px] sm:left-[566px] px-8 w-[432px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#00000080] text-[15px] tracking-[0] leading-[normal]">
               keep your personal details private. information you add here is
               visible to anyone who can view your profile.
             </p>
@@ -207,6 +208,7 @@ export default function SettingsPage() {
           
           <SidebarNavigationSection />
           
+          {/* Main keeps its base margin and horizontal padding parameters unchanged */}
           <main className="flex z-[1] mt-[212px] relative flex-col items-start gap-[25px] px-8 py-8 ml-[500px] sm:ml-[566px]">
             {message && (
               <div
@@ -230,7 +232,8 @@ export default function SettingsPage() {
                 onSubmit={handleSubmit}
                 className="flex w-full flex-col items-start gap-[25px]"
               >
-                <section className="inline-flex h-[38.81px] items-center gap-[5.55px] px-[15px] py-[15.52px] relative border-l-[3px] [border-left-style:solid] border-[#002a8b]">
+                {/* Removed the left border or structural margins pushing text inside section to achieve absolute line alignment */}
+                <section className="inline-flex h-[38.81px] items-center gap-[5.55px] relative border-l-[3px] border-solid border-[#002a8b] pl-[12px]">
                   <h2 className="relative w-fit mt-[-17.62px] mb-[-11.62px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[26.2px] tracking-[0] leading-[normal]">
                     edit profile
                   </h2>
@@ -260,7 +263,7 @@ export default function SettingsPage() {
                     );
                   })}
                 </div>
-                <section className="inline-flex h-[38.81px] items-center gap-[5.55px] px-[15px] py-[15.52px] relative border-l-[3px] [border-left-style:solid] border-[#002a8b]">
+                <section className="inline-flex h-[38.81px] items-center gap-[5.55px] relative border-l-[3px] border-solid border-[#002a8b] pl-[12px]">
                   <h2 className="relative w-fit mt-[-17.62px] mb-[-11.62px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[26.2px] tracking-[0] leading-[normal]">
                     change password
                   </h2>
