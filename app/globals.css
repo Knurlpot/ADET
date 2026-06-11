@@ -6,23 +6,23 @@
 }
 
 @font-face {
-  font-family: 'TT Fors Trial';
-  src: url('/fonts/TT Fors Trial Regular.ttf') format('truetype');
-  font-weight: 400;
+  font-family: 'TT Fors Trial-Bold';
+  src: url('/fonts/TTForsTrialBold.ttf') format('truetype');
+  font-weight: 700;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'TT Fors Trial';
-  src: url('/fonts/TT Fors Trial Bold.ttf') format('truetype');
-  font-weight: 700;
+  font-family: 'TT Fors Trial-Regular';
+  src: url('/fonts/TTForsTrialRegular.ttf') format('truetype');
+  font-weight: 400;
   font-style: normal;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: 'TT Fors Trial', Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
