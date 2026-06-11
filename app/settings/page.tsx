@@ -48,6 +48,7 @@ export default function SettingsPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [scale, setScale] = useState<number>(1);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [formState, setFormState] = useState<FormState>({
     username: "",
@@ -59,6 +60,14 @@ export default function SettingsPage() {
   useEffect(() => {
     setIsMounted(true);
     fetchUserData();
+
+    // Matching the exact blueprint scale ratio logic from the Dashboard
+    const updateScale = () => {
+      setScale(Math.min(window.innerWidth / 1440, window.innerHeight / 1024));
+    };
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
   }, []);
 
   const fetchUserData = async () => {
@@ -103,7 +112,6 @@ export default function SettingsPage() {
     setMessage(null);
 
     try {
-      // Validate password fields if filling them
       if (formState.newPassword || formState.confirmPassword) {
         if (formState.newPassword !== formState.confirmPassword) {
           setMessage({ type: "error", text: "Passwords do not match" });
@@ -139,11 +147,9 @@ export default function SettingsPage() {
 
       if (response.ok) {
         setMessage({ type: "success", text: "Settings updated successfully" });
-        // Update localStorage with new username
         if (formState.username) {
           localStorage.setItem("userUsername", formState.username);
         }
-        // Clear password fields after successful update
         setFormState((prev) => ({
           ...prev,
           newPassword: "",
@@ -161,134 +167,147 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="bg-[#f8f0e2] w-full min-w-[1440px] min-h-[1024px] flex relative">
-      <div className="fixed top-0 left-0 right-0 w-full h-[212px] bg-[#f8f0e2] blur-[20px]" aria-hidden="true" />
-      <header className="contents">
-        <DashboardGreetingSection
-          username=""
-          greetingText="settings"
-          showUsername={false}
-          position="fixed top-[77px] left-[500px] sm:left-[566px]"
-          ariaLabel="Settings page header"
-        />
-        <p className="fixed top-[130px] left-[500px] sm:left-[566px] w-[400px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#00000080] text-[15px] tracking-[0] leading-[normal]">
-          keep your personal details private. information you add here is
-          visible to anyone who can view your profile.
-        </p>
-        <div className="inline-flex flex-col items-center justify-center gap-2.5 px-5 py-2.5 fixed top-20 right-4 sm:right-8 bg-[#002a8b] rounded-[15px]">
-          <div className="flex items-center gap-5 relative self-stretch w-full flex-[0_0_auto]">
-            <img
-              className="relative w-[19.19px] h-[20.13px]"
-              alt=""
-              src="/user.svg"
-              aria-hidden="true"
+    <div className="w-screen h-screen overflow-hidden bg-[#f8f0e2] flex items-center justify-center">
+      <div
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: "center",
+          width: "1440px",
+          height: "1024px",
+        }}
+      >
+        <div className="bg-[#f8f0e2] w-full min-w-[1440px] min-h-[1024px] flex relative">
+          <div className="fixed top-0 left-0 right-0 w-full h-[212px] bg-[#f8f0e2] blur-[20px]" aria-hidden="true" />
+          <header className="contents">
+            <DashboardGreetingSection
+              username=""
+              greetingText="settings"
+              showUsername={false}
+              position="fixed top-[77px] left-[500px] sm:left-[566px]"
+              ariaLabel="Settings page header"
             />
-            <div className="w-fit mt-[-1.00px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#f8f0e2] text-[15px] relative tracking-[0] leading-[normal]">
-              {isMounted ? formState.username : "User"}
+            <p className="fixed top-[130px] left-[500px] sm:left-[566px] w-[400px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#00000080] text-[15px] tracking-[0] leading-[normal]">
+              keep your personal details private. information you add here is
+              visible to anyone who can view your profile.
+            </p>
+            <div className="inline-flex flex-col items-center justify-center gap-2.5 px-5 py-2.5 fixed top-20 right-4 sm:right-8 bg-[#002a8b] rounded-[15px]">
+              <div className="flex items-center gap-5 relative self-stretch w-full flex-[0_0_auto]">
+                <img
+                  className="relative w-[19.19px] h-[20.13px]"
+                  alt=""
+                  src="/user.svg"
+                  aria-hidden="true"
+                />
+                <div className="w-fit mt-[-1.00px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#f8f0e2] text-[15px] relative tracking-[0] leading-[normal]">
+                  {isMounted ? formState.username : "User"}
+                </div>
+              </div>
             </div>
-          </div>
+          </header>
+          
+          <SidebarNavigationSection />
+          
+          <main className="flex z-[1] mt-[212px] relative flex-col items-start gap-[25px] px-8 py-8 ml-[500px] sm:ml-[566px]">
+            {message && (
+              <div
+                className={`w-full p-4 rounded-lg ${
+                  message.type === "success"
+                    ? "bg-green-100 text-green-800 border border-green-300"
+                    : "bg-red-100 text-red-800 border border-red-300"
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
+            {isLoading && (
+              <div className="text-[#002a8b] text-center w-full py-8">
+                Loading your settings...
+              </div>
+            )}
+            {!isLoading && (
+              <form
+                id={formId}
+                onSubmit={handleSubmit}
+                className="flex w-full flex-col items-start gap-[25px]"
+              >
+                <section className="inline-flex h-[38.81px] items-center gap-[5.55px] px-[15px] py-[15.52px] relative border-l-[3px] [border-left-style:solid] border-[#002a8b]">
+                  <h2 className="relative w-fit mt-[-17.62px] mb-[-11.62px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[26.2px] tracking-[0] leading-[normal]">
+                    edit profile
+                  </h2>
+                </section>
+                <div className="flex flex-col items-start gap-[11px] relative self-stretch w-full flex-[0_0_auto]">
+                  {profileFields.map((field) => {
+                    const inputId = `${formId}-${field.key}`;
+
+                    return (
+                      <div key={field.key} className={fieldWrapperClassName}>
+                        <label htmlFor={inputId} className={fieldLabelClassName}>
+                          {field.label}
+                        </label>
+                        <input
+                          id={inputId}
+                          name={field.key}
+                          type={field.type}
+                          autoComplete={field.autoComplete}
+                          value={formState[field.key]}
+                          onChange={(event) =>
+                            handleChange(field.key, event.target.value)
+                          }
+                          className={fieldInputClassName}
+                          aria-label={field.label}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <section className="inline-flex h-[38.81px] items-center gap-[5.55px] px-[15px] py-[15.52px] relative border-l-[3px] [border-left-style:solid] border-[#002a8b]">
+                  <h2 className="relative w-fit mt-[-17.62px] mb-[-11.62px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[26.2px] tracking-[0] leading-[normal]">
+                    change password
+                  </h2>
+                </section>
+                <div className="flex flex-col items-start gap-[11px] relative self-stretch w-full flex-[0_0_auto]">
+                  {passwordFields.map((field) => {
+                    const inputId = `${formId}-${field.key}`;
+
+                    return (
+                      <div key={field.key} className={fieldWrapperClassName}>
+                        <label htmlFor={inputId} className={fieldLabelClassName}>
+                          {field.label}
+                        </label>
+                        <input
+                          id={inputId}
+                          name={field.key}
+                          type={field.type}
+                          autoComplete={field.autoComplete}
+                          value={formState[field.key]}
+                          onChange={(event) =>
+                            handleChange(field.key, event.target.value)
+                          }
+                          className={fieldInputClassName}
+                          aria-label={field.label}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSaving || isLoading}
+                  className={`flex w-[494px] items-center justify-center gap-2.5 p-2.5 relative flex-[0_0_auto] rounded-[10px] border border-solid transition-colors ${
+                    isSaving || isLoading
+                      ? "border-[#b0b0b0] bg-[#f0f0f0] opacity-50 cursor-not-allowed"
+                      : "border-[#002a8b] hover:bg-[#002a8b] hover:text-[#f8f0e2]"
+                  }`}
+                >
+                  <div className="relative w-fit mt-[-1.00px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[19.3px] tracking-[0] leading-[normal]">
+                    {isSaving ? "Saving..." : "save changes"}
+                  </div>
+                </button>
+              </form>
+            )}
+          </main>
         </div>
-      </header>
-      <SidebarNavigationSection />
-      <main className="flex z-[1] mt-[212px] relative flex-col items-start gap-[25px] px-8 py-8 ml-[500px] sm:ml-[566px]">
-        {message && (
-          <div
-            className={`w-full p-4 rounded-lg ${
-              message.type === "success"
-                ? "bg-green-100 text-green-800 border border-green-300"
-                : "bg-red-100 text-red-800 border border-red-300"
-            }`}
-          >
-            {message.text}
-          </div>
-        )}
-        {isLoading && (
-          <div className="text-[#002a8b] text-center w-full py-8">
-            Loading your settings...
-          </div>
-        )}
-        {!isLoading && (
-        <form
-          id={formId}
-          onSubmit={handleSubmit}
-          className="flex w-full flex-col items-start gap-[25px]"
-        >
-          <section className="inline-flex h-[38.81px] items-center gap-[5.55px] px-[15px] py-[15.52px] relative border-l-[3px] [border-left-style:solid] border-[#002a8b]">
-            <h2 className="relative w-fit mt-[-17.62px] mb-[-11.62px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[26.2px] tracking-[0] leading-[normal]">
-              edit profile
-            </h2>
-          </section>
-          <div className="flex flex-col items-start gap-[11px] relative self-stretch w-full flex-[0_0_auto]">
-            {profileFields.map((field) => {
-              const inputId = `${formId}-${field.key}`;
-
-              return (
-                <div key={field.key} className={fieldWrapperClassName}>
-                  <label htmlFor={inputId} className={fieldLabelClassName}>
-                    {field.label}
-                  </label>
-                  <input
-                    id={inputId}
-                    name={field.key}
-                    type={field.type}
-                    autoComplete={field.autoComplete}
-                    value={formState[field.key]}
-                    onChange={(event) =>
-                      handleChange(field.key, event.target.value)
-                    }
-                    className={fieldInputClassName}
-                    aria-label={field.label}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <section className="inline-flex h-[38.81px] items-center gap-[5.55px] px-[15px] py-[15.52px] relative border-l-[3px] [border-left-style:solid] border-[#002a8b]">
-            <h2 className="relative w-fit mt-[-17.62px] mb-[-11.62px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[26.2px] tracking-[0] leading-[normal]">
-              change password
-            </h2>
-          </section>
-          <div className="flex flex-col items-start gap-[11px] relative self-stretch w-full flex-[0_0_auto]">
-            {passwordFields.map((field) => {
-              const inputId = `${formId}-${field.key}`;
-
-              return (
-                <div key={field.key} className={fieldWrapperClassName}>
-                  <label htmlFor={inputId} className={fieldLabelClassName}>
-                    {field.label}
-                  </label>
-                  <input
-                    id={inputId}
-                    name={field.key}
-                    type={field.type}
-                    autoComplete={field.autoComplete}
-                    value={formState[field.key]}
-                    onChange={(event) =>
-                      handleChange(field.key, event.target.value)
-                    }
-                    className={fieldInputClassName}
-                    aria-label={field.label}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <button
-            type="submit"
-            disabled={isSaving || isLoading}
-            className={`flex w-[494px] items-center justify-center gap-2.5 p-2.5 relative flex-[0_0_auto] rounded-[10px] border border-solid transition-colors ${
-              isSaving || isLoading
-                ? "border-[#b0b0b0] bg-[#f0f0f0] opacity-50 cursor-not-allowed"
-                : "border-[#002a8b] hover:bg-[#002a8b] hover:text-[#f8f0e2]"
-            }`}
-          >
-            <div className="relative w-fit mt-[-1.00px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[19.3px] tracking-[0] leading-[normal]">
-              {isSaving ? "Saving..." : "save changes"}
-            </div>
-          </button>
-        </form>
-        )}
-      </main>
+      </div>
     </div>
   );
 }
