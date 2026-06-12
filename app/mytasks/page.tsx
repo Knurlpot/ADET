@@ -106,6 +106,41 @@ function convertDBTaskToFrontendTask(dbTask: DBTask): Task {
   };
 }
 
+// ─── Expanded card accent colours ────────────────────────────────────────────
+// Matches the design: blue for completed/low-prio, orange for med-prio, red for high-prio pending
+function getAccentColor(priority: TaskPriority, status: TaskStatus): string {
+  if (status === "completed") return "#002a8b";
+  if (priority === "high-prio") return "#c0392b";
+  if (priority === "med-prio") return "#e07b2a";
+  return "#002a8b"; // low-prio
+}
+
+// Tag pill styles for the expanded card
+function getPillStyle(
+  type: "category" | "priority" | "status",
+  priority: TaskPriority,
+  status: TaskStatus,
+): string {
+  const accent = getAccentColor(priority, status);
+  const base =
+    "inline-flex items-center px-[10px] py-[3px] rounded-full text-[11px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold";
+
+  if (type === "category") {
+    // Category is always navy-filled white text
+    return `${base} bg-[#002a8b] text-[#f8f0e2]`;
+  }
+
+  // Priority and status use the accent colour
+  if (accent === "#002a8b") {
+    return `${base} bg-[#002a8b] text-[#f8f0e2]`;
+  }
+  if (accent === "#c0392b") {
+    return `${base} bg-[#c0392b] text-[#f8f0e2]`;
+  }
+  // orange
+  return `${base} bg-[#e07b2a] text-[#f8f0e2]`;
+}
+
 const filterOptions: Array<Exclude<TaskCategory, "all">> = [
   "personal",
   "school",
@@ -125,19 +160,6 @@ const statusSections: Array<{
   { key: "pending", label: "pending..." },
 ];
 
-function getIconsForTask(priority: TaskPriority, status: TaskStatus): { delete: string; edit: string } {
-  if (status === "completed") {
-    return { delete: "/DeleteBlue.png", edit: "/EditBlue.png" };
-  }
-  if (priority === "high-prio") {
-    return { delete: "/DeleteRed.png", edit: "/EditRed.png" };
-  }
-  if (priority === "med-prio") {
-    return { delete: "/DeleteOrange.png", edit: "/EditOrange.png" };
-  }
-  return { delete: "/DeleteBlue.png", edit: "/EditBlue.png" };
-}
-
 export default function MyTasks(): React.ReactElement {
   const formId = useId();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
@@ -145,25 +167,21 @@ export default function MyTasks(): React.ReactElement {
   const [activeFilter, setActiveFilter] = useState<TaskCategory>("all");
   const [taskName, setTaskName] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
-  const [taskCategory, setTaskCategory] = useState<TaskCategory | "">("")
-  const [taskPriority, setTaskPriority] = useState<TaskPriority | "">("")
+  const [taskCategory, setTaskCategory] = useState<TaskCategory | "">("");
+  const [taskPriority, setTaskPriority] = useState<TaskPriority | "">("");
   const [showModal, setShowModal] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [scale, setScale] = useState<number>(1);
   const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
-  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-  const [editTaskName, setEditTaskName] = useState("");
-  const [editTaskDescription, setEditTaskDescription] = useState("");
-  const [editTaskCategory, setEditTaskCategory] = useState<TaskCategory | "">("")
-  const [editTaskPriority, setEditTaskPriority] = useState<TaskPriority | "">("")
-  const [dropdownPosition, setDropdownPosition] = useState<{ x: number; y: number } | null>(null);
+
+  // ── NEW: which task card is expanded ──────────────────────────────────────
+  const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
-    
+
     const updateScale = () => {
       setScale(Math.min(window.innerWidth / 1440, window.innerHeight / 1024));
     };
@@ -195,8 +213,7 @@ export default function MyTasks(): React.ReactElement {
         const tasksData = await tasksResponse.json();
 
         if (tasksResponse.ok && tasksData.tasks) {
-          // Convert DB tasks to frontend tasks
-          const frontendTasks = tasksData.tasks.map((dbTask: DBTask) => 
+          const frontendTasks = tasksData.tasks.map((dbTask: DBTask) =>
             convertDBTaskToFrontendTask(dbTask)
           );
           setTasks(frontendTasks);
@@ -210,7 +227,7 @@ export default function MyTasks(): React.ReactElement {
         setTasks([]);
       }
     }
-    
+
     fetchUserAndTasks();
     return () => window.removeEventListener("resize", updateScale);
   }, []);
@@ -231,22 +248,17 @@ export default function MyTasks(): React.ReactElement {
   const groupedTasks = useMemo(() => {
     return {
       completed: filteredTasks.filter((task) => task.status === "completed"),
-      "in-progress": filteredTasks.filter(
-        (task) => task.status === "in-progress",
-      ),
+      "in-progress": filteredTasks.filter((task) => task.status === "in-progress"),
       pending: filteredTasks.filter((task) => task.status === "pending"),
     };
   }, [filteredTasks]);
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (
-      !taskName.trim() ||
-      !taskDescription.trim() ||
-      !taskCategory ||
-      !taskPriority
-    ) {
+    if (!taskName.trim() || !taskDescription.trim() || !taskCategory || !taskPriority) {
       console.warn("Form validation failed - missing required fields");
       return;
     }
@@ -258,7 +270,6 @@ export default function MyTasks(): React.ReactElement {
         return;
       }
 
-      console.log("Submitting task with userId:", userId);
       const payload = {
         userId,
         name: taskName.trim(),
@@ -267,42 +278,28 @@ export default function MyTasks(): React.ReactElement {
         priority: mapFrontendPriorityToDB(taskPriority),
         status: mapFrontendStatusToDB("pending"),
       };
-      console.log("Payload:", payload);
 
       const response = await fetch("/api/tasks", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      console.log("Response received - Status:", response.status, "StatusText:", response.statusText);
-
       let responseData: any;
       const contentType = response.headers.get("content-type");
-      console.log("Content-Type:", contentType);
-
       if (contentType?.includes("application/json")) {
         try {
           responseData = await response.json();
-          console.log("Parsed JSON response:", responseData);
-        } catch (parseError) {
-          console.error("Failed to parse JSON:", parseError);
+        } catch {
           const text = await response.text();
-          console.error("Raw response text:", text);
           responseData = { error: "Failed to parse response", rawText: text };
         }
       } else {
         const text = await response.text();
-        console.error("Non-JSON response:", text);
         responseData = { error: "Non-JSON response", rawText: text };
       }
 
       if (response.ok) {
-        console.log("Task created successfully");
-        
-        // Add the new task to the local state with the returned ID
         const newTask: Task = {
           id: responseData.taskId || Date.now(),
           name: taskName.trim(),
@@ -311,7 +308,6 @@ export default function MyTasks(): React.ReactElement {
           priority: taskPriority,
           status: "pending",
         };
-
         setTasks((current) => [...current, newTask]);
         setTaskName("");
         setTaskDescription("");
@@ -319,110 +315,10 @@ export default function MyTasks(): React.ReactElement {
         setTaskPriority("");
         setShowModal(false);
       } else {
-        console.error("Failed to create task - Status:", response.status);
-        console.error("Error response data:", responseData);
-        
-        // Display detailed error information
-        const errorMsg = responseData?.message || responseData?.error || "Unknown error";
-        const errorCode = responseData?.code || responseData?.errno || "N/A";
-        console.error(`API Error: ${errorMsg} (Code: ${errorCode})`);
-        
-        if (responseData?.stack && process.env.NODE_ENV === "development") {
-          console.error("Stack trace:", responseData.stack);
-        }
+        console.error("Failed to create task:", responseData);
       }
     } catch (err) {
       console.error("Exception in handleSubmit:", err);
-      if (err instanceof Error) {
-        console.error("Error message:", err.message);
-        console.error("Error stack:", err.stack);
-      }
-    }
-  };
-
-  const handleToggleTaskCompletion = async (taskId: number, currentStatus: TaskStatus) => {
-    try {
-      const newStatus: TaskStatus = currentStatus === "completed" ? "pending" : "completed";
-      console.log("=== handleToggleTaskCompletion START ===");
-      console.log("Task ID:", taskId);
-      console.log("Current status:", currentStatus);
-      console.log("New status:", newStatus);
-
-      const payload: { status: string; dateCompleted?: string | null } = {
-        status: mapFrontendStatusToDB(newStatus),
-      };
-
-      if (newStatus === "completed") {
-        const isoString = new Date().toISOString();
-        payload.dateCompleted = isoString.substring(0, 19).replace("T", " ");
-        console.log("Marking completed with dateCompleted:", payload.dateCompleted);
-      } else {
-        payload.dateCompleted = null;
-        console.log("Marking incomplete and clearing dateCompleted");
-      }
-
-      console.log("Payload being sent:", JSON.stringify(payload));
-      console.log("URL being called:", `/api/tasks/${taskId}`);
-
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      console.log("=== Response Received ===");
-      console.log("Update response - Status:", response.status);
-      console.log("Update response - StatusText:", response.statusText);
-      console.log("Update response - OK:", response.ok);
-
-      const responseText = await response.text();
-      console.log("Raw response text:", responseText);
-      console.log("Raw response text length:", responseText.length);
-
-      let responseData: any;
-      if (responseText && responseText.length > 0) {
-        try {
-          responseData = JSON.parse(responseText);
-        } catch (parseErr) {
-          responseData = { error: "Failed to parse response", rawText: responseText };
-        }
-      } else {
-        responseData = { error: "Empty response from API" };
-      }
-
-      console.log("Parsed response data:", responseData);
-
-      if (response.ok) {
-        console.log(`✅ Task marked as ${newStatus} successfully`);
-        setTasks((current) =>
-          current.map((task) =>
-            task.id === taskId
-              ? { ...task, status: newStatus }
-              : task
-          )
-        );
-      } else {
-        console.error(`❌ Failed to mark task as ${newStatus}`);
-        console.error("Response error:", responseData);
-        console.error("Full error details:", {
-          status: response.status,
-          message: responseData?.message,
-          code: responseData?.code,
-          errno: responseData?.errno,
-          stack: responseData?.stack,
-          received: responseData?.received,
-        });
-      }
-
-      console.log("=== handleToggleTaskCompletion END ===");
-    } catch (err) {
-      console.error("❌ Exception in handleToggleTaskCompletion:", err);
-      if (err instanceof Error) {
-        console.error("Error message:", err.message);
-        console.error("Error stack:", err.stack);
-      }
     }
   };
 
@@ -434,32 +330,33 @@ export default function MyTasks(): React.ReactElement {
 
       if (newStatus === "completed") {
         payload.dateCompleted = new Date().toISOString().substring(0, 19).replace("T", " ");
-      } else {
-        payload.dateCompleted = null;
       }
 
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        console.error("Failed to update status:", response.status, text);
+        const responseText = await response.text();
+        let errorData: any;
+        try {
+          errorData = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          errorData = { error: "Failed to parse response", rawText: responseText };
+        }
+        console.error("Failed to update task status:", errorData);
         return false;
       }
 
       setTasks((current) =>
         current.map((task) =>
-          task.id === taskId
-            ? { ...task, status: newStatus }
-            : task
+          task.id === taskId ? { ...task, status: newStatus } : task
         )
       );
 
+      if (expandedTaskId === taskId) setExpandedTaskId(null);
       return true;
     } catch (err) {
       console.error("Exception in handleUpdateTaskStatus:", err);
@@ -467,108 +364,19 @@ export default function MyTasks(): React.ReactElement {
     }
   };
 
-  const handleDragStart = (taskId: number) => {
+  const handleToggleTaskCompletion = async (task: Task) => {
+    const newStatus = task.status === "completed" ? "pending" : "completed";
+    await handleUpdateTaskStatus(task.id, newStatus);
+  };
+
+  const handleDragStart = (taskId: number, event: React.DragEvent<HTMLElement>) => {
     setDraggedTaskId(taskId);
+    event.dataTransfer.effectAllowed = "move";
   };
 
   const handleDragEnd = () => {
     setDraggedTaskId(null);
     setDragOverStatus(null);
-  };
-
-  const handleSelectTask = (task: Task, event: React.MouseEvent) => {
-    const button = event.currentTarget as HTMLButtonElement;
-    const rect = button.getBoundingClientRect();
-    setDropdownPosition({ x: rect.right + 10, y: rect.top });
-    setSelectedTaskId(task.id);
-  };
-
-  const handleCloseTaskDetails = () => {
-    setSelectedTaskId(null);
-    setDropdownPosition(null);
-  };
-
-  const handleEditTask = (task: Task) => {
-    setEditingTaskId(task.id);
-    setEditTaskName(task.name);
-    setEditTaskDescription(task.description);
-    setEditTaskCategory(task.category);
-    setEditTaskPriority(task.priority);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingTaskId(null);
-    setEditTaskName("");
-    setEditTaskDescription("");
-    setEditTaskCategory("");
-    setEditTaskPriority("");
-  };
-
-  const handleSaveEditTask = async (taskId: number) => {
-    if (!editTaskName.trim() || !editTaskDescription.trim() || !editTaskCategory || !editTaskPriority) {
-      console.warn("Form validation failed");
-      return;
-    }
-
-    try {
-      const payload = {
-        name: editTaskName.trim(),
-        description: editTaskDescription.trim(),
-        category: mapFrontendCategoryToDB(editTaskCategory),
-        priority: mapFrontendPriorityToDB(editTaskPriority),
-      };
-
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        setTasks((current) =>
-          current.map((task) =>
-            task.id === taskId
-              ? {
-                  ...task,
-                  name: editTaskName.trim(),
-                  description: editTaskDescription.trim(),
-                  category: editTaskCategory,
-                  priority: editTaskPriority,
-                }
-              : task
-          )
-        );
-        handleCancelEdit();
-        setSelectedTaskId(null);
-      } else {
-        console.error("Failed to update task");
-      }
-    } catch (err) {
-      console.error("Exception in handleSaveEditTask:", err);
-    }
-  };
-
-  const handleDeleteTask = async (taskId: number) => {
-    if (!window.confirm("Are you sure you want to delete this task?")) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        setTasks((current) => current.filter((task) => task.id !== taskId));
-        setSelectedTaskId(null);
-      } else {
-        console.error("Failed to delete task");
-      }
-    } catch (err) {
-      console.error("Exception in handleDeleteTask:", err);
-    }
   };
 
   const handleDragOverStatus = (event: React.DragEvent<HTMLDivElement>, status: TaskStatus) => {
@@ -580,9 +388,7 @@ export default function MyTasks(): React.ReactElement {
     event.preventDefault();
     setDragOverStatus(null);
 
-    if (draggedTaskId === null) {
-      return;
-    }
+    if (draggedTaskId === null) return;
 
     const draggedTask = tasks.find((task) => task.id === draggedTaskId);
     if (!draggedTask || draggedTask.status === status) {
@@ -590,13 +396,43 @@ export default function MyTasks(): React.ReactElement {
       return;
     }
 
-    const updated = await handleUpdateTaskStatus(draggedTaskId, status);
-    if (!updated) {
-      setDraggedTaskId(null);
-      return;
-    }
-
+    await handleUpdateTaskStatus(draggedTaskId, status);
     setDraggedTaskId(null);
+  };
+
+  // ── NEW: Delete handler ───────────────────────────────────────────────────
+  const handleDeleteTask = async (taskId: number) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setTasks((current) => current.filter((task) => task.id !== taskId));
+        if (expandedTaskId === taskId) setExpandedTaskId(null);
+      } else {
+        const text = await response.text();
+        console.error("Failed to delete task:", text);
+      }
+    } catch (err) {
+      console.error("Exception in handleDeleteTask:", err);
+    }
+  };
+
+  // ── NEW: Edit handler (stub — opens modal pre-filled) ────────────────────
+  const handleEditTask = (task: Task) => {
+    setTaskName(task.name);
+    setTaskDescription(task.description);
+    setTaskCategory(task.category);
+    setTaskPriority(task.priority);
+    setShowModal(true);
+    setExpandedTaskId(null);
+    // TODO: wire up edit mode in TaskModal to PUT instead of POST
+  };
+
+  // ── NEW: Toggle expanded card ─────────────────────────────────────────────
+  const handleToggleExpand = (taskId: number) => {
+    setExpandedTaskId((current) => (current === taskId ? null : taskId));
   };
 
   return (
@@ -610,9 +446,9 @@ export default function MyTasks(): React.ReactElement {
         }}
       >
         <div className="bg-[#f8f0e2] w-full min-w-[1440px] min-h-[1024px] flex relative">
-          
+
           <div className="fixed top-0 left-0 right-0 w-full h-[320px] bg-[#f8f0e2] blur-[20px]" aria-hidden="true" />
-          
+
           <header className="contents">
             <DashboardGreetingSection
               username=""
@@ -643,8 +479,8 @@ export default function MyTasks(): React.ReactElement {
 
           {/* Form Actions/Search Segment */}
           <section className="flex z-[7] flex-col items-start gap-4 fixed top-[174px] left-[500px] sm:left-[566px] right-[120px] px-8">
-            
-            {/* Row 1: Search Form Component */}
+
+            {/* Row 1: Search */}
             <form
               role="search"
               aria-label="Search tasks"
@@ -665,18 +501,16 @@ export default function MyTasks(): React.ReactElement {
                 className="relative w-full h-[25.31px] bg-transparent outline-none [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#00000080] placeholder:text-[#00000080] text-[17.2px] tracking-[0] leading-[normal]"
               />
             </form>
-            
-            {/* Row 2: Category Filter Row - Scaled to precisely match the search bar's outer edge */}
+
+            {/* Row 2: Category Filter */}
             <div className="flex h-[43px] items-center gap-[10px] relative self-stretch w-full">
-              
-              {/* "All" Filtering Button Element */}
               <button
                 type="button"
                 onClick={() => setActiveFilter("all")}
                 aria-pressed={activeFilter === "all"}
                 className={`flex flex-1 w-full h-[30px] items-center justify-center relative rounded-[40px] border-2 border-solid transition-colors ${
-                  activeFilter === "all" 
-                    ? "bg-[#002a8b] border-[#002a8b] text-[#f8f0e2]" 
+                  activeFilter === "all"
+                    ? "bg-[#002a8b] border-[#002a8b] text-[#f8f0e2]"
                     : "border-[#002a8b] text-[#002a8b]"
                 }`}
               >
@@ -685,7 +519,6 @@ export default function MyTasks(): React.ReactElement {
                 </div>
               </button>
 
-              {/* Individual mapped Categories */}
               {filterOptions.map((filter) => (
                 <button
                   key={filter}
@@ -693,8 +526,8 @@ export default function MyTasks(): React.ReactElement {
                   onClick={() => setActiveFilter(filter)}
                   aria-pressed={activeFilter === filter}
                   className={`flex flex-1 w-full h-[30px] items-center justify-center relative rounded-[40px] border-2 border-solid transition-colors ${
-                    activeFilter === filter 
-                      ? "bg-[#002a8b] border-[#002a8b] text-[#f8f0e2]" 
+                    activeFilter === filter
+                      ? "bg-[#002a8b] border-[#002a8b] text-[#f8f0e2]"
                       : "border-[#002a8b] text-[#002a8b]"
                   }`}
                 >
@@ -705,7 +538,7 @@ export default function MyTasks(): React.ReactElement {
               ))}
             </div>
 
-            {/* Row 3: Action Trigger Button */}
+            {/* Row 3: Add Task Button */}
             <button
               type="button"
               onClick={() => setShowModal(true)}
@@ -723,7 +556,7 @@ export default function MyTasks(): React.ReactElement {
             </button>
           </section>
 
-          {/* Main Task Feed Container */}
+          {/* Main Task Feed */}
           <main className="flex z-[1] mt-[340px] max-h-[640px] overflow-y-auto fixed top-[40px] left-[500px] sm:left-[566px] right-[120px] px-8 flex-col items-start gap-[25px] pb-12 scrollbar-none">
             {statusSections.map((section) => {
               const sectionTasks = groupedTasks[section.key];
@@ -731,67 +564,155 @@ export default function MyTasks(): React.ReactElement {
               return (
                 <div key={section.key} className="w-full">
                   <div className="flex w-full items-center gap-2.5 pb-2 relative border-b-2 border-solid border-black">
-                    <h2
-                      className={`relative w-fit ${
-                        section.key === "completed"
-                          ? "[font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold"
-                          : "[font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold"
-                      } text-[#191818] text-lg tracking-[0] leading-[normal]`}
-                    >
+                    <h2 className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#191818] text-lg tracking-[0] leading-[normal]">
                       {section.label}
                     </h2>
                   </div>
-                  
+
                   <div
                     className={`mt-[15px] flex flex-col gap-[12px] ${
-                      dragOverStatus === section.key
-                        ? "bg-[#f0f6ff] rounded-[20px] p-3"
-                        : ""
+                      dragOverStatus === section.key ? "bg-[#f0f6ff] rounded-[20px] p-3" : ""
                     }`}
                     onDragOver={(event) => handleDragOverStatus(event, section.key)}
                     onDrop={(event) => handleDropStatus(event, section.key)}
                   >
                     {sectionTasks.length === 0 ? (
-                      <p className="text-sm font-normal text-[#00000050] italic px-4">No tasks found.</p>
+                      <p className="text-sm font-normal text-[#00000050] italic px-4">
+                        No tasks found.
+                      </p>
                     ) : (
                       sectionTasks.map((task) => {
                         const style = getTaskStyles(task.priority, task.status);
-                        const targetAction = task.status === "completed" ? "incomplete" : "completed";
+                        const isExpanded = expandedTaskId === task.id;
+                        const accent = getAccentColor(task.priority, task.status);
 
                         return (
                           <article
                             key={task.id}
-                            className="relative w-full h-[55px]"
+                            className="w-full flex flex-col gap-0"
                             draggable
-                            onDragStart={() => handleDragStart(task.id)}
+                            onDragStart={(event) => handleDragStart(task.id, event)}
                             onDragEnd={handleDragEnd}
                           >
-                            <div className={style.wrapper}>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleTaskCompletion(task.id, task.status)}
-                                aria-label={`Mark ${task.name} as ${targetAction}`}
-                                className={style.circle}
-                              >
-                                {task.status === "completed" && (
-                                  <img
-                                    className="w-full h-full"
-                                    alt="Completed"
-                                    aria-hidden="true"
-                                    src="/Check.svg"
-                                  />
-                                )}
-                              </button>
-                              <div className={style.text}>{task.name}</div>
-                              <button
-                                type="button"
-                                onClick={(e) => handleSelectTask(task, e)}
-                                aria-label={`More options for ${task.name}`}
-                                className={style.dots}
-                              >
-                                . . .
-                              </button>
+
+                            {/* ── Collapsed pill row ── */}
+                            <div className="relative w-full h-[55px]">
+                              <div className={style.wrapper}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleTaskCompletion(task)}
+                                  aria-label={
+                                    task.status === "completed"
+                                      ? `Uncheck ${task.name}`
+                                      : `Mark ${task.name} as completed`
+                                  }
+                                  className={style.circle}
+                                >
+                                  {task.status === "completed" && (
+                                    <img
+                                      className="w-full h-full"
+                                      alt="Task completed"
+                                      aria-hidden="true"
+                                      src="/Check.svg"
+                                    />
+                                  )}
+                                </button>
+                                <div className={style.text}>{task.name}</div>
+                                {/* "..." toggles the expanded panel */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleExpand(task.id)}
+                                  aria-expanded={isExpanded}
+                                  aria-label={`${isExpanded ? "Collapse" : "Expand"} options for ${task.name}`}
+                                  className={style.dots}
+                                >
+                                  . . .
+                                </button>
+                              </div>
                             </div>
+
+                            {/* ── Expanded detail card ── */}
+                            {isExpanded && (
+                              <div
+                                className="w-full rounded-b-[20px] rounded-t-none border-[2.5px] border-t-0 px-[18px] pt-[14px] pb-[14px] flex flex-col gap-[12px]"
+                                style={{ borderColor: accent }}
+                              >
+                                {/* Description */}
+                                <p
+                                  className="[font-family:'TT_Fors_Trial-Regular',Helvetica] text-[13px] leading-[1.5] tracking-[0]"
+                                  style={{ color: accent }}
+                                >
+                                  {task.description || "No description provided."}
+                                </p>
+
+                                {/* Footer: tags + action icons */}
+                                <div className="flex items-center justify-between w-full">
+                                  {/* Tag pills */}
+                                  <div className="flex items-center gap-[6px] flex-wrap">
+                                    <span className={getPillStyle("category", task.priority, task.status)}>
+                                      {task.category}
+                                    </span>
+                                    <span className={getPillStyle("priority", task.priority, task.status)}>
+                                      {task.priority === "low-prio"
+                                        ? "low-priority"
+                                        : task.priority === "med-prio"
+                                        ? "medium-priority"
+                                        : "high-priority"}
+                                    </span>
+                                    <span className={getPillStyle("status", task.priority, task.status)}>
+                                      {task.status}
+                                    </span>
+                                  </div>
+
+                                  {/* Edit + Delete icons */}
+                                  <div className="flex items-center gap-[14px] shrink-0 ml-4">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditTask(task)}
+                                      aria-label={`Edit ${task.name}`}
+                                      className="flex items-center justify-center w-[28px] h-[28px] hover:opacity-70 transition-opacity"
+                                    >
+                                      {/* Pencil icon — SVG inline to allow accent colouring */}
+                                      <svg
+                                        width="18"
+                                        height="18"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                                          fill={accent}
+                                        />
+                                      </svg>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteTask(task.id)}
+                                      aria-label={`Delete ${task.name}`}
+                                      className="flex items-center justify-center w-[28px] h-[28px] hover:opacity-70 transition-opacity"
+                                    >
+                                      {/* Trash icon */}
+                                      <svg
+                                        width="18"
+                                        height="18"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                                          fill={accent}
+                                        />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </article>
                         );
                       })
@@ -802,175 +723,16 @@ export default function MyTasks(): React.ReactElement {
             })}
           </main>
 
-          {/* Task Details Dropdown */}
-          {selectedTaskId !== null && dropdownPosition && (() => {
-            const selectedTask = tasks.find((task) => task.id === selectedTaskId);
-            if (!selectedTask) return null;
-
-            const icons = getIconsForTask(selectedTask.priority, selectedTask.status);
-            const isEditing = editingTaskId === selectedTask.id;
-
-            return (
-              <>
-                <div 
-                  className="fixed inset-0 z-[99]" 
-                  onClick={handleCloseTaskDetails}
-                />
-                <div 
-                  className="fixed z-[100] bg-[#f8f0e2] rounded-[20px] border-[2px] border-solid border-[#002a8b] p-6 shadow-lg min-w-[320px] max-w-[380px]"
-                  style={{
-                    left: `${dropdownPosition.x}px`,
-                    top: `${dropdownPosition.y}px`,
-                    transform: "translateY(0)"
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {isEditing ? (
-                    <>
-                      <h3 className="[font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[16px] mb-4">
-                        Edit Task
-                      </h3>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[12px] mb-1">
-                            Name
-                          </label>
-                          <input
-                            type="text"
-                            value={editTaskName}
-                            onChange={(e) => setEditTaskName(e.target.value)}
-                            className="w-full px-3 py-1.5 rounded-[8px] border-[1px] border-solid border-[#002a8b] bg-[#f8f0e2] text-[#002a8b] focus:outline-none text-[13px]"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[12px] mb-1">
-                            Description
-                          </label>
-                          <textarea
-                            value={editTaskDescription}
-                            onChange={(e) => setEditTaskDescription(e.target.value)}
-                            rows={2}
-                            className="w-full px-3 py-1.5 rounded-[8px] border-[1px] border-solid border-[#002a8b] bg-[#f8f0e2] text-[#002a8b] focus:outline-none resize-none text-[13px]"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[12px] mb-1">
-                              Category
-                            </label>
-                            <select
-                              value={editTaskCategory}
-                              onChange={(e) => setEditTaskCategory(e.target.value as TaskCategory)}
-                              className="w-full px-2 py-1 rounded-[6px] border-[1px] border-solid border-[#002a8b] bg-[#f8f0e2] text-[#002a8b] focus:outline-none text-[12px]"
-                            >
-                              <option value="">Select</option>
-                              <option value="personal">personal</option>
-                              <option value="school">school</option>
-                              <option value="work">work</option>
-                              <option value="fitness">fitness</option>
-                              <option value="others">others</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[12px] mb-1">
-                              Priority
-                            </label>
-                            <select
-                              value={editTaskPriority}
-                              onChange={(e) => setEditTaskPriority(e.target.value as TaskPriority)}
-                              className="w-full px-2 py-1 rounded-[6px] border-[1px] border-solid border-[#002a8b] bg-[#f8f0e2] text-[#002a8b] focus:outline-none text-[12px]"
-                            >
-                              <option value="">Select</option>
-                              <option value="low-prio">low</option>
-                              <option value="med-prio">med</option>
-                              <option value="high-prio">high</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 mt-4">
-                        <button
-                          type="button"
-                          onClick={() => handleSaveEditTask(selectedTask.id)}
-                          className="flex-1 px-3 py-1.5 bg-[#002a8b] text-[#f8f0e2] rounded-[10px] font-bold transition hover:bg-[#001f66] text-[12px]"
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancelEdit}
-                          className="flex-1 px-3 py-1.5 bg-[#00000020] text-[#002a8b] rounded-[10px] font-bold transition hover:bg-[#00000030] text-[12px]"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <h3 className="[font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[15px] mb-3">
-                        {selectedTask.name}
-                      </h3>
-
-                      <div className="space-y-2 mb-4 pb-3 border-b border-[#00000010]">
-                        <p className="text-[#002a8b] text-[13px]">
-                          {selectedTask.description}
-                        </p>
-
-                        <div className="flex flex-wrap gap-2">
-                          <div className="px-2 py-1 bg-[#002a8b] text-[#f8f0e2] rounded-[6px] text-[11px] font-bold capitalize">
-                            {selectedTask.category}
-                          </div>
-                          <div className="px-2 py-1 bg-[#002a8b] text-[#f8f0e2] rounded-[6px] text-[11px] font-bold capitalize">
-                            {selectedTask.priority}
-                          </div>
-                          <div className="px-2 py-1 bg-[#002a8b] text-[#f8f0e2] rounded-[6px] text-[11px] font-bold capitalize">
-                            {selectedTask.status}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEditTask(selectedTask)}
-                          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 bg-[#002a8b] text-[#f8f0e2] rounded-[10px] font-bold transition hover:bg-[#001f66] text-[12px]"
-                        >
-                          <img
-                            src={icons.edit}
-                            alt="Edit"
-                            className="w-[14px] h-[14px]"
-                          />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTask(selectedTask.id)}
-                          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 bg-[#00000020] text-[#002a8b] rounded-[10px] font-bold transition hover:bg-[#00000030] text-[12px]"
-                        >
-                          <img
-                            src={icons.delete}
-                            alt="Delete"
-                            className="w-[14px] h-[14px]"
-                          />
-                          Delete
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </>
-            );
-          })()}
-
-          {/* Modal Container */}
+          {/* Modal */}
           <TaskModal
             showModal={showModal}
-            onClose={() => setShowModal(false)}
+            onClose={() => {
+              setShowModal(false);
+              setTaskName("");
+              setTaskDescription("");
+              setTaskCategory("");
+              setTaskPriority("");
+            }}
             taskName={taskName}
             onTaskNameChange={setTaskName}
             taskDescription={taskDescription}
@@ -987,4 +749,4 @@ export default function MyTasks(): React.ReactElement {
       </div>
     </div>
   );
-} 
+}
