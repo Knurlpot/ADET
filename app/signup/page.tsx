@@ -98,14 +98,14 @@ export const Signup = (): JSX.Element => {
         src="/nudge.svg"
         alt=""
         aria-hidden="true"
-        className="absolute left-[65%] top-[15%] w-[100px] h-auto"
+        className="absolute left-[65%] top-[13%] w-[160px] h-auto"
       />
 
       {/* Cat Illustration */}
       <img
         src="/cat.png"
         alt="Illustration of a cat being petted"
-        className="hidden lg:block absolute right-0 bottom-0 max-w-[35vw] h-auto z-10"
+        className="hidden lg:block absolute right-[-170px] bottom-[-10px] w-[750px] h-auto z-10"
       />
 
       {/* Content */}
