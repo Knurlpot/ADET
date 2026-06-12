@@ -138,6 +138,8 @@ export default function MyTasks(): React.ReactElement {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [scale, setScale] = useState<number>(1);
+  const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -318,29 +320,30 @@ export default function MyTasks(): React.ReactElement {
     }
   };
 
-  const handleCompleteTask = async (taskId: number) => {
+  const handleToggleTaskCompletion = async (taskId: number, currentStatus: TaskStatus) => {
     try {
-      console.log("=== handleCompleteTask START ===");
-      console.log("Task ID to complete:", taskId);
-      console.log("Task ID type:", typeof taskId);
-      
-      const completedStatus = mapFrontendStatusToDB("completed");
-      // Format date for MySQL: YYYY-MM-DD HH:MM:SS (strip milliseconds and timezone)
-      const isoString = new Date().toISOString();
-      const completionDate = isoString.substring(0, 19).replace('T', ' ');
-      
-      console.log("Status from mapping:", completedStatus);
-      console.log("Status type:", typeof completedStatus);
-      console.log("Completion date:", completionDate);
-      
-      const payload = {
-        status: completedStatus,
-        dateCompleted: completionDate,
+      const newStatus: TaskStatus = currentStatus === "completed" ? "pending" : "completed";
+      console.log("=== handleToggleTaskCompletion START ===");
+      console.log("Task ID:", taskId);
+      console.log("Current status:", currentStatus);
+      console.log("New status:", newStatus);
+
+      const payload: { status: string; dateCompleted?: string | null } = {
+        status: mapFrontendStatusToDB(newStatus),
       };
-      
+
+      if (newStatus === "completed") {
+        const isoString = new Date().toISOString();
+        payload.dateCompleted = isoString.substring(0, 19).replace("T", " ");
+        console.log("Marking completed with dateCompleted:", payload.dateCompleted);
+      } else {
+        payload.dateCompleted = null;
+        console.log("Marking incomplete and clearing dateCompleted");
+      }
+
       console.log("Payload being sent:", JSON.stringify(payload));
       console.log("URL being called:", `/api/tasks/${taskId}`);
-      
+
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: {
@@ -353,55 +356,132 @@ export default function MyTasks(): React.ReactElement {
       console.log("Update response - Status:", response.status);
       console.log("Update response - StatusText:", response.statusText);
       console.log("Update response - OK:", response.ok);
-      
+
       const responseText = await response.text();
       console.log("Raw response text:", responseText);
       console.log("Raw response text length:", responseText.length);
 
-      let errorData: any;
+      let responseData: any;
       if (responseText && responseText.length > 0) {
         try {
-          errorData = JSON.parse(responseText);
+          responseData = JSON.parse(responseText);
         } catch (parseErr) {
-          errorData = { error: "Failed to parse response", rawText: responseText };
+          responseData = { error: "Failed to parse response", rawText: responseText };
         }
       } else {
-        errorData = { error: "Empty response from API" };
+        responseData = { error: "Empty response from API" };
       }
 
-      console.log("Parsed response data:", errorData);
+      console.log("Parsed response data:", responseData);
 
       if (response.ok) {
-        console.log("✅ Task marked as completed successfully");
-        
-        // Update local state
+        console.log(`✅ Task marked as ${newStatus} successfully`);
         setTasks((current) =>
           current.map((task) =>
             task.id === taskId
-              ? { ...task, status: "completed" }
+              ? { ...task, status: newStatus }
               : task
           )
         );
       } else {
-        console.error("❌ Failed to mark task as completed");
-        console.error("Response error:", errorData);
+        console.error(`❌ Failed to mark task as ${newStatus}`);
+        console.error("Response error:", responseData);
         console.error("Full error details:", {
           status: response.status,
-          message: errorData?.message,
-          code: errorData?.code,
-          errno: errorData?.errno,
-          stack: errorData?.stack,
-          received: errorData?.received
+          message: responseData?.message,
+          code: responseData?.code,
+          errno: responseData?.errno,
+          stack: responseData?.stack,
+          received: responseData?.received,
         });
       }
-      console.log("=== handleCompleteTask END ===");
+
+      console.log("=== handleToggleTaskCompletion END ===");
     } catch (err) {
-      console.error("❌ Exception in handleCompleteTask:", err);
+      console.error("❌ Exception in handleToggleTaskCompletion:", err);
       if (err instanceof Error) {
         console.error("Error message:", err.message);
         console.error("Error stack:", err.stack);
       }
     }
+  };
+
+  const handleUpdateTaskStatus = async (taskId: number, newStatus: TaskStatus) => {
+    try {
+      const payload: { status: string; dateCompleted?: string | null } = {
+        status: mapFrontendStatusToDB(newStatus),
+      };
+
+      if (newStatus === "completed") {
+        payload.dateCompleted = new Date().toISOString().substring(0, 19).replace("T", " ");
+      } else {
+        payload.dateCompleted = null;
+      }
+
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Failed to update status:", response.status, text);
+        return false;
+      }
+
+      setTasks((current) =>
+        current.map((task) =>
+          task.id === taskId
+            ? { ...task, status: newStatus }
+            : task
+        )
+      );
+
+      return true;
+    } catch (err) {
+      console.error("Exception in handleUpdateTaskStatus:", err);
+      return false;
+    }
+  };
+
+  const handleDragStart = (taskId: number) => {
+    setDraggedTaskId(taskId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTaskId(null);
+    setDragOverStatus(null);
+  };
+
+  const handleDragOverStatus = (event: React.DragEvent<HTMLDivElement>, status: TaskStatus) => {
+    event.preventDefault();
+    setDragOverStatus(status);
+  };
+
+  const handleDropStatus = async (event: React.DragEvent<HTMLDivElement>, status: TaskStatus) => {
+    event.preventDefault();
+    setDragOverStatus(null);
+
+    if (draggedTaskId === null) {
+      return;
+    }
+
+    const draggedTask = tasks.find((task) => task.id === draggedTaskId);
+    if (!draggedTask || draggedTask.status === status) {
+      setDraggedTaskId(null);
+      return;
+    }
+
+    const updated = await handleUpdateTaskStatus(draggedTaskId, status);
+    if (!updated) {
+      setDraggedTaskId(null);
+      return;
+    }
+
+    setDraggedTaskId(null);
   };
 
   return (
@@ -547,34 +627,46 @@ export default function MyTasks(): React.ReactElement {
                     </h2>
                   </div>
                   
-                  <div className="mt-[15px] flex flex-col gap-[12px]">
+                  <div
+                    className={`mt-[15px] flex flex-col gap-[12px] ${
+                      dragOverStatus === section.key
+                        ? "bg-[#f0f6ff] rounded-[20px] p-3"
+                        : ""
+                    }`}
+                    onDragOver={(event) => handleDragOverStatus(event, section.key)}
+                    onDrop={(event) => handleDropStatus(event, section.key)}
+                  >
                     {sectionTasks.length === 0 ? (
                       <p className="text-sm font-normal text-[#00000050] italic px-4">No tasks found.</p>
                     ) : (
                       sectionTasks.map((task) => {
                         const style = getTaskStyles(task.priority, task.status);
+                        const targetAction = task.status === "completed" ? "incomplete" : "completed";
 
                         return (
                           <article
                             key={task.id}
                             className="relative w-full h-[55px]"
+                            draggable
+                            onDragStart={() => handleDragStart(task.id)}
+                            onDragEnd={handleDragEnd}
                           >
                             <div className={style.wrapper}>
-                              {style.filled ? (
-                                <img
-                                  className={style.circle}
-                                  alt=""
-                                  aria-hidden="true"
-                                  src="/Check.svg"
-                                />
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => handleCompleteTask(task.id)}
-                                  aria-label={`Mark ${task.name} as completed`}
-                                  className={style.circle}
-                                />
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTaskCompletion(task.id, task.status)}
+                                aria-label={`Mark ${task.name} as ${targetAction}`}
+                                className={style.circle}
+                              >
+                                {task.status === "completed" && (
+                                  <img
+                                    className="w-full h-full"
+                                    alt="Completed"
+                                    aria-hidden="true"
+                                    src="/Check.svg"
+                                  />
+                                )}
+                              </button>
                               <div className={style.text}>{task.name}</div>
                               <button
                                 type="button"
