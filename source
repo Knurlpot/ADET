@@ -1,3 +1,6 @@
+-- UPDATED SCHEMA
+-- REMOVED STARTDATE AND ENDDATE
+
 -- For MySQL
 
 -- Delete Existing Database
