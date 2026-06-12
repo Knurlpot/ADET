@@ -64,6 +64,8 @@ export const SidebarNavigationSection = (): JSX.Element => {
   useEffect(() => {
     if (pathname === "/settings") {
       setActiveButton("Settings");
+    } else if (pathname === "/mytasks") {
+      setActiveButton("My Tasks");
     } else if (pathname === "/dashboard") {
       setActiveButton("Dashboard");
     } else {
@@ -83,6 +85,10 @@ export const SidebarNavigationSection = (): JSX.Element => {
       setActiveButton(label);
       if (label === "Dashboard") {
         router.push("/dashboard");
+      } else if (label === "My Tasks") {
+        router.push("/mytasks");
+      } else if (label === "Pomodoro Timer") {
+        router.push("/pomodoro");
       }
     }
   };

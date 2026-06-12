@@ -42,15 +42,19 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(accountPassword, 10);
 
     // Insert new user
-    await connection.execute(
+    const [result] = await connection.execute(
       'INSERT INTO Users (Username, Email, AccountPassword) VALUES (?, ?, ?)',
       [username, email, hashedPassword]
-    );
+    ) as any;
 
     await connection.end();
 
     return NextResponse.json(
-      { message: 'User created successfully' },
+      { 
+        message: 'User created successfully',
+        userId: result.insertId,
+        username: username
+      },
       { status: 201 }
     );
   } catch (error) {

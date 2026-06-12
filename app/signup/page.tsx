@@ -75,6 +75,7 @@ export const Signup = (): JSX.Element => {
 
       setFormData({ username: "", email: "", accountPassword: "" });
       localStorage.setItem("userUsername", formData.username);
+      localStorage.setItem("userId", data.userId);
       setTimeout(() => {
         setLoading(false);
         router.push("/dashboard");
