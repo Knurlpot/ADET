@@ -66,6 +66,8 @@ export const SidebarNavigationSection = (): JSX.Element => {
       setActiveButton("Settings");
     } else if (pathname === "/mytasks") {
       setActiveButton("My Tasks");
+    } else if (pathname === "/pomodoro") {
+      setActiveButton("Pomodoro Timer");
     } else if (pathname === "/dashboard") {
       setActiveButton("Dashboard");
     } else {

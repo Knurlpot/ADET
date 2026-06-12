@@ -1,11 +1,14 @@
 export const DashboardGreetingSection = ({
   username,
+  remainingTasksCount = 0,
   greetingText = "good morning,",
   showUsername = true,
+  // Move the positioning to a single wrapper container
   position = "fixed top-[77px] left-[450px] sm:left-[516px]",
   ariaLabel = "Dashboard greeting",
 }: {
   username: string;
+  remainingTasksCount?: number;
   greetingText?: string;
   showUsername?: boolean;
   position?: string;
@@ -16,7 +19,7 @@ export const DashboardGreetingSection = ({
       id: "greeting",
       text: greetingText,
       className:
-        "relative w-fit mt-[-1.19px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-black text-[33.8px] tracking-[0] leading-[normal]",
+        "relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-black text-[33.8px] tracking-[0] leading-[normal]",
     },
     ...(showUsername
       ? [
@@ -24,7 +27,7 @@ export const DashboardGreetingSection = ({
             id: "name",
             text: `${username}!`,
             className:
-              "relative w-fit mt-[-1.19px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[33.8px] tracking-[0] leading-[normal]",
+              "relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[33.8px] tracking-[0] leading-[normal]",
           },
         ]
       : []),

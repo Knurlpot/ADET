@@ -25,7 +25,6 @@ type UserProfile = {
   Email: string;
 };
 
-// Database schema types
 type DBTask = {
   TaskID: number;
   TaskName: string;
@@ -35,7 +34,6 @@ type DBTask = {
   TaskStatus: "Pending" | "In-Progress" | "Completed";
 };
 
-// Mapping functions between frontend and database
 function mapDBCategoryToFrontend(dbCategory: string): Exclude<TaskCategory, "all"> {
   const categoryMap: { [key: string]: Exclude<TaskCategory, "all"> } = {
     "Personal": "personal",
@@ -94,7 +92,6 @@ function mapFrontendStatusToDB(frontendStatus: string): "Completed" | "In-Progre
   return statusMap[frontendStatus] || "Pending";
 }
 
-// Convert DB task to frontend task
 function convertDBTaskToFrontendTask(dbTask: DBTask): Task {
   return {
     id: dbTask.TaskID,
@@ -105,25 +102,6 @@ function convertDBTaskToFrontendTask(dbTask: DBTask): Task {
     status: mapDBStatusToFrontend(dbTask.TaskStatus),
   };
 }
-
-const filterOptions: Array<Exclude<TaskCategory, "all">> = [
-  "personal",
-  "school",
-  "work",
-  "fitness",
-  "others",
-];
-
-const initialTasks: Task[] = [];
-
-const statusSections: Array<{
-  key: TaskStatus;
-  label: string;
-}> = [
-  { key: "completed", label: "completed!" },
-  { key: "in-progress", label: "in progress...!" },
-  { key: "pending", label: "pending..." },
-];
 
 function getIconsForTask(priority: TaskPriority, status: TaskStatus): { delete: string; edit: string } {
   if (status === "completed") {
@@ -138,28 +116,40 @@ function getIconsForTask(priority: TaskPriority, status: TaskStatus): { delete: 
   return { delete: "/DeleteBlue.png", edit: "/EditBlue.png" };
 }
 
-export default function MyTasks(): React.ReactElement {
+const statusSections: Array<{
+  key: TaskStatus;
+  label: string;
+}> = [
+  { key: "pending", label: "pending..." },
+  { key: "in-progress", label: "in progress...!" },
+  { key: "completed", label: "completed!" },
+];
+
+export default function Pomodoro(): React.ReactElement {
   const formId = useId();
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<TaskCategory>("all");
   const [taskName, setTaskName] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
-  const [taskCategory, setTaskCategory] = useState<TaskCategory | "">("")
-  const [taskPriority, setTaskPriority] = useState<TaskPriority | "">("")
+  const [taskCategory, setTaskCategory] = useState<TaskCategory | "">("");
+  const [taskPriority, setTaskPriority] = useState<TaskPriority | "">("");
   const [showModal, setShowModal] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [scale, setScale] = useState<number>(1);
-  const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
-  const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
+  const [currentMode, setCurrentMode] = useState<"pomodoro" | "short" | "long">("pomodoro");
+  const [timeRemaining, setTimeRemaining] = useState<number>(25 * 60);
+  const [isRunning, setIsRunning] = useState<boolean>(false);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [editTaskName, setEditTaskName] = useState("");
   const [editTaskDescription, setEditTaskDescription] = useState("");
-  const [editTaskCategory, setEditTaskCategory] = useState<TaskCategory | "">("")
-  const [editTaskPriority, setEditTaskPriority] = useState<TaskPriority | "">("")
+  const [editTaskCategory, setEditTaskCategory] = useState<TaskCategory | "">("");
+  const [editTaskPriority, setEditTaskPriority] = useState<TaskPriority | "">("");
   const [dropdownPosition, setDropdownPosition] = useState<{ x: number; y: number } | null>(null);
+  const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -179,7 +169,6 @@ export default function MyTasks(): React.ReactElement {
           return;
         }
 
-        // Fetch user info
         const userResponse = await fetch(`/api/settings?userId=${userId}`);
         const userData = await userResponse.json();
 
@@ -190,12 +179,10 @@ export default function MyTasks(): React.ReactElement {
           setUser(null);
         }
 
-        // Fetch tasks
         const tasksResponse = await fetch(`/api/tasks?userId=${userId}`);
         const tasksData = await tasksResponse.json();
 
         if (tasksResponse.ok && tasksData.tasks) {
-          // Convert DB tasks to frontend tasks
           const frontendTasks = tasksData.tasks.map((dbTask: DBTask) => 
             convertDBTaskToFrontendTask(dbTask)
           );
@@ -215,265 +202,41 @@ export default function MyTasks(): React.ReactElement {
     return () => window.removeEventListener("resize", updateScale);
   }, []);
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      const matchesSearch =
-        search.trim() === "" ||
-        task.name.toLowerCase().includes(search.toLowerCase()) ||
-        task.description.toLowerCase().includes(search.toLowerCase());
+  useEffect(() => {
+    if (!isRunning) return;
 
-      const matchesFilter = activeFilter === "all" || task.category === activeFilter;
-
-      return matchesSearch && matchesFilter;
-    });
-  }, [tasks, search, activeFilter]);
-
-  const groupedTasks = useMemo(() => {
-    return {
-      completed: filteredTasks.filter((task) => task.status === "completed"),
-      "in-progress": filteredTasks.filter(
-        (task) => task.status === "in-progress",
-      ),
-      pending: filteredTasks.filter((task) => task.status === "pending"),
-    };
-  }, [filteredTasks]);
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (
-      !taskName.trim() ||
-      !taskDescription.trim() ||
-      !taskCategory ||
-      !taskPriority
-    ) {
-      console.warn("Form validation failed - missing required fields");
-      return;
-    }
-
-    try {
-      const userId = localStorage.getItem("userId");
-      if (!userId) {
-        console.error("User ID not found in localStorage");
-        return;
-      }
-
-      console.log("Submitting task with userId:", userId);
-      const payload = {
-        userId,
-        name: taskName.trim(),
-        description: taskDescription.trim(),
-        category: mapFrontendCategoryToDB(taskCategory),
-        priority: mapFrontendPriorityToDB(taskPriority),
-        status: mapFrontendStatusToDB("pending"),
-      };
-      console.log("Payload:", payload);
-
-      const response = await fetch("/api/tasks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      console.log("Response received - Status:", response.status, "StatusText:", response.statusText);
-
-      let responseData: any;
-      const contentType = response.headers.get("content-type");
-      console.log("Content-Type:", contentType);
-
-      if (contentType?.includes("application/json")) {
-        try {
-          responseData = await response.json();
-          console.log("Parsed JSON response:", responseData);
-        } catch (parseError) {
-          console.error("Failed to parse JSON:", parseError);
-          const text = await response.text();
-          console.error("Raw response text:", text);
-          responseData = { error: "Failed to parse response", rawText: text };
+    const interval = window.setInterval(() => {
+      setTimeRemaining((currentTime) => {
+        if (currentTime <= 1) {
+          window.clearInterval(interval);
+          setIsRunning(false);
+          return 0;
         }
-      } else {
-        const text = await response.text();
-        console.error("Non-JSON response:", text);
-        responseData = { error: "Non-JSON response", rawText: text };
-      }
-
-      if (response.ok) {
-        console.log("Task created successfully");
-        
-        // Add the new task to the local state with the returned ID
-        const newTask: Task = {
-          id: responseData.taskId || Date.now(),
-          name: taskName.trim(),
-          description: taskDescription.trim(),
-          category: taskCategory,
-          priority: taskPriority,
-          status: "pending",
-        };
-
-        setTasks((current) => [...current, newTask]);
-        setTaskName("");
-        setTaskDescription("");
-        setTaskCategory("");
-        setTaskPriority("");
-        setShowModal(false);
-      } else {
-        console.error("Failed to create task - Status:", response.status);
-        console.error("Error response data:", responseData);
-        
-        // Display detailed error information
-        const errorMsg = responseData?.message || responseData?.error || "Unknown error";
-        const errorCode = responseData?.code || responseData?.errno || "N/A";
-        console.error(`API Error: ${errorMsg} (Code: ${errorCode})`);
-        
-        if (responseData?.stack && process.env.NODE_ENV === "development") {
-          console.error("Stack trace:", responseData.stack);
-        }
-      }
-    } catch (err) {
-      console.error("Exception in handleSubmit:", err);
-      if (err instanceof Error) {
-        console.error("Error message:", err.message);
-        console.error("Error stack:", err.stack);
-      }
-    }
-  };
-
-  const handleToggleTaskCompletion = async (taskId: number, currentStatus: TaskStatus) => {
-    try {
-      const newStatus: TaskStatus = currentStatus === "completed" ? "pending" : "completed";
-      console.log("=== handleToggleTaskCompletion START ===");
-      console.log("Task ID:", taskId);
-      console.log("Current status:", currentStatus);
-      console.log("New status:", newStatus);
-
-      const payload: { status: string; dateCompleted?: string | null } = {
-        status: mapFrontendStatusToDB(newStatus),
-      };
-
-      if (newStatus === "completed") {
-        const isoString = new Date().toISOString();
-        payload.dateCompleted = isoString.substring(0, 19).replace("T", " ");
-        console.log("Marking completed with dateCompleted:", payload.dateCompleted);
-      } else {
-        payload.dateCompleted = null;
-        console.log("Marking incomplete and clearing dateCompleted");
-      }
-
-      console.log("Payload being sent:", JSON.stringify(payload));
-      console.log("URL being called:", `/api/tasks/${taskId}`);
-
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        return currentTime - 1;
       });
+    }, 1000);
 
-      console.log("=== Response Received ===");
-      console.log("Update response - Status:", response.status);
-      console.log("Update response - StatusText:", response.statusText);
-      console.log("Update response - OK:", response.ok);
+    return () => window.clearInterval(interval);
+  }, [isRunning]);
 
-      const responseText = await response.text();
-      console.log("Raw response text:", responseText);
-      console.log("Raw response text length:", responseText.length);
-
-      let responseData: any;
-      if (responseText && responseText.length > 0) {
-        try {
-          responseData = JSON.parse(responseText);
-        } catch (parseErr) {
-          responseData = { error: "Failed to parse response", rawText: responseText };
-        }
-      } else {
-        responseData = { error: "Empty response from API" };
-      }
-
-      console.log("Parsed response data:", responseData);
-
-      if (response.ok) {
-        console.log(`✅ Task marked as ${newStatus} successfully`);
-        setTasks((current) =>
-          current.map((task) =>
-            task.id === taskId
-              ? { ...task, status: newStatus }
-              : task
-          )
-        );
-      } else {
-        console.error(`❌ Failed to mark task as ${newStatus}`);
-        console.error("Response error:", responseData);
-        console.error("Full error details:", {
-          status: response.status,
-          message: responseData?.message,
-          code: responseData?.code,
-          errno: responseData?.errno,
-          stack: responseData?.stack,
-          received: responseData?.received,
-        });
-      }
-
-      console.log("=== handleToggleTaskCompletion END ===");
-    } catch (err) {
-      console.error("❌ Exception in handleToggleTaskCompletion:", err);
-      if (err instanceof Error) {
-        console.error("Error message:", err.message);
-        console.error("Error stack:", err.stack);
-      }
+  const handleStartPause = () => {
+    if (timeRemaining === 0) {
+      const defaultTimes = { pomodoro: 25, short: 5, long: 15 };
+      setTimeRemaining(defaultTimes[currentMode] * 60);
     }
+    setIsRunning(!isRunning);
   };
 
-  const handleUpdateTaskStatus = async (taskId: number, newStatus: TaskStatus) => {
-    try {
-      const payload: { status: string; dateCompleted?: string | null } = {
-        status: mapFrontendStatusToDB(newStatus),
-      };
-
-      if (newStatus === "completed") {
-        payload.dateCompleted = new Date().toISOString().substring(0, 19).replace("T", " ");
-      } else {
-        payload.dateCompleted = null;
-      }
-
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error("Failed to update status:", response.status, text);
-        return false;
-      }
-
-      setTasks((current) =>
-        current.map((task) =>
-          task.id === taskId
-            ? { ...task, status: newStatus }
-            : task
-        )
-      );
-
-      return true;
-    } catch (err) {
-      console.error("Exception in handleUpdateTaskStatus:", err);
-      return false;
-    }
+  const handleReset = () => {
+    setIsRunning(false);
+    const defaultTimes = { pomodoro: 25, short: 5, long: 15 };
+    setTimeRemaining(defaultTimes[currentMode] * 60);
   };
 
-  const handleDragStart = (taskId: number) => {
-    setDraggedTaskId(taskId);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedTaskId(null);
-    setDragOverStatus(null);
+  const changeMode = (mode: "pomodoro" | "short" | "long", minutes: number) => {
+    setIsRunning(false);
+    setCurrentMode(mode);
+    setTimeRemaining(minutes * 60);
   };
 
   const handleSelectTask = (task: Task, event: React.MouseEvent) => {
@@ -571,6 +334,179 @@ export default function MyTasks(): React.ReactElement {
     }
   };
 
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const matchesSearch =
+        search.trim() === "" ||
+        task.name.toLowerCase().includes(search.toLowerCase()) ||
+        task.description.toLowerCase().includes(search.toLowerCase());
+
+      const matchesFilter = activeFilter === "all" || task.category === activeFilter;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [tasks, search, activeFilter]);
+
+  const groupedTasks = useMemo(() => {
+    return {
+      completed: filteredTasks.filter((task) => task.status === "completed"),
+      "in-progress": filteredTasks.filter((task) => task.status === "in-progress"),
+      pending: filteredTasks.filter((task) => task.status === "pending"),
+    };
+  }, [filteredTasks]);
+
+
+  const formattedTime = useMemo(() => {
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  }, [timeRemaining]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (
+      !taskName.trim() ||
+      !taskDescription.trim() ||
+      !taskCategory ||
+      !taskPriority
+    ) {
+      console.warn("Form validation failed - missing required fields");
+      return;
+    }
+
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        console.error("User ID not found in localStorage");
+        return;
+      }
+
+      const payload = {
+        userId,
+        name: taskName.trim(),
+        description: taskDescription.trim(),
+        category: mapFrontendCategoryToDB(taskCategory),
+        priority: mapFrontendPriorityToDB(taskPriority),
+        status: mapFrontendStatusToDB("pending"),
+      };
+
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        const newTask: Task = {
+          id: responseData.taskId || Date.now(),
+          name: taskName.trim(),
+          description: taskDescription.trim(),
+          category: taskCategory,
+          priority: taskPriority,
+          status: "pending",
+        };
+
+        setTasks((current) => [...current, newTask]);
+        setTaskName("");
+        setTaskDescription("");
+        setTaskCategory("");
+        setTaskPriority("");
+        setShowModal(false);
+      }
+    } catch (err) {
+      console.error("Exception in handleSubmit:", err);
+    }
+  };
+
+  const handleToggleTaskCompletion = async (taskId: number, currentStatus: TaskStatus) => {
+    try {
+      const newStatus: TaskStatus = currentStatus === "completed" ? "pending" : "completed";
+
+      const payload: { status: string; dateCompleted?: string | null } = {
+        status: mapFrontendStatusToDB(newStatus),
+      };
+
+      if (newStatus === "completed") {
+        const isoString = new Date().toISOString();
+        payload.dateCompleted = isoString.substring(0, 19).replace("T", " ");
+      } else {
+        payload.dateCompleted = null;
+      }
+
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        setTasks((current) =>
+          current.map((task) =>
+            task.id === taskId ? { ...task, status: newStatus } : task
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error updating task:", err);
+    }
+  };
+
+  const handleDragStart = (taskId: number) => {
+    setDraggedTaskId(taskId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTaskId(null);
+    setDragOverStatus(null);
+  };
+
+  const handleUpdateTaskStatus = async (taskId: number, newStatus: TaskStatus) => {
+    try {
+      const payload: { status: string; dateCompleted?: string | null } = {
+        status: mapFrontendStatusToDB(newStatus),
+      };
+
+      if (newStatus === "completed") {
+        payload.dateCompleted = new Date().toISOString().substring(0, 19).replace("T", " ");
+      } else {
+        payload.dateCompleted = null;
+      }
+
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Failed to update status:", response.status, text);
+        return false;
+      }
+
+      setTasks((current) =>
+        current.map((task) =>
+          task.id === taskId
+            ? { ...task, status: newStatus }
+            : task
+        )
+      );
+
+      return true;
+    } catch (err) {
+      console.error("Exception in handleUpdateTaskStatus:", err);
+      return false;
+    }
+  };
+
   const handleDragOverStatus = (event: React.DragEvent<HTMLDivElement>, status: TaskStatus) => {
     event.preventDefault();
     setDragOverStatus(status);
@@ -585,7 +521,7 @@ export default function MyTasks(): React.ReactElement {
     }
 
     const draggedTask = tasks.find((task) => task.id === draggedTaskId);
-    if (!draggedTask || draggedTask.status === status) {
+    if (!draggedTask || draggedTask.status === status || draggedTask.status === "completed") {
       setDraggedTaskId(null);
       return;
     }
@@ -611,18 +547,20 @@ export default function MyTasks(): React.ReactElement {
       >
         <div className="bg-[#f8f0e2] w-full min-w-[1440px] min-h-[1024px] flex relative">
           
+          {/* Header Blur element */}
           <div className="fixed top-0 left-0 right-0 w-full h-[320px] bg-[#f8f0e2] blur-[20px]" aria-hidden="true" />
           
+          {/* Main Layout Header & User Profiling */}
           <header className="contents">
             <DashboardGreetingSection
               username=""
-              greetingText="here are today's tasks!"
+              greetingText="a pomodoro-ductive day!"
               showUsername={false}
               position="fixed top-[77px] left-[500px] sm:left-[566px] px-8"
-              ariaLabel="Tasks page header"
+              ariaLabel="Pomodoro page header"
             />
             <p className="fixed top-[130px] left-[500px] sm:left-[566px] right-[120px] px-8 [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#00000080] text-[15px] tracking-[0] leading-[normal]">
-              stay on track of everything listed!
+              quickly finish up works with our integrated pomodoro timer!
             </p>
             <div className="inline-flex flex-col items-center justify-center gap-2.5 px-5 py-2.5 fixed top-20 right-4 sm:right-8 bg-[#002a8b] rounded-[15px]">
               <div className="flex items-center gap-5 relative self-stretch w-full flex-[0_0_auto]">
@@ -641,103 +579,79 @@ export default function MyTasks(): React.ReactElement {
 
           <SidebarNavigationSection />
 
-          {/* Form Actions/Search Segment */}
-          <section className="flex z-[7] flex-col items-start gap-4 fixed top-[174px] left-[500px] sm:left-[566px] right-[120px] px-8">
+          {/* Integrated Pomodoro Timer Component Block */}
+          <section className="flex z-[7] flex-col items-center justify-center gap-4 fixed top-[174px] left-[500px] sm:left-[566px] right-[120px] px-8 py-3 bg-[#f8f0e2] rounded-[30px] border-[3px] border-solid border-[#002a8b]">
             
-            {/* Row 1: Search Form Component */}
-            <form
-              role="search"
-              aria-label="Search tasks"
-              className="flex h-[55px] items-center gap-[15px] px-[15px] relative self-stretch w-full bg-[#f8f0e2] rounded-[40px] border-[3px] border-solid border-[#002a8b]"
-            >
-              <img
-                className="relative w-6 h-6 aspect-[1] shrink-0"
-                alt=""
-                aria-hidden="true"
-                src="/Search.png"
-              />
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                aria-label="search"
-                placeholder="search"
-                className="relative w-full h-[25.31px] bg-transparent outline-none [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#00000080] placeholder:text-[#00000080] text-[17.2px] tracking-[0] leading-[normal]"
-              />
-            </form>
-            
-            {/* Row 2: Category Filter Row - Scaled to precisely match the search bar's outer edge */}
-            <div className="flex h-[43px] items-center gap-[10px] relative self-stretch w-full">
-              
-              {/* "All" Filtering Button Element */}
+            {/* Session Configuration Tabs */}
+            <div className="flex gap-3 items-center justify-center w-full max-w-[430px]">
               <button
                 type="button"
-                onClick={() => setActiveFilter("all")}
-                aria-pressed={activeFilter === "all"}
-                className={`flex flex-1 w-full h-[30px] items-center justify-center relative rounded-[40px] border-2 border-solid transition-colors ${
-                  activeFilter === "all" 
-                    ? "bg-[#002a8b] border-[#002a8b] text-[#f8f0e2]" 
-                    : "border-[#002a8b] text-[#002a8b]"
+                onClick={() => changeMode("pomodoro", 25)}
+                className={`px-5 py-1.5 rounded-[40px] border-2 border-solid border-[#002a8b] font-bold [font-family:'TT_Fors_Trial-Bold',Helvetica] text-[15px] transition-colors ${
+                  currentMode === "pomodoro"
+                    ? "bg-[#002a8b] text-[#f8f0e2]"
+                    : "bg-transparent text-[#002a8b] hover:bg-[#002a8b]/10"
                 }`}
               >
-                <div className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[13px] tracking-[0] leading-[normal]">
-                  all
-                </div>
+                pomodoro
               </button>
-
-              {/* Individual mapped Categories */}
-              {filterOptions.map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  onClick={() => setActiveFilter(filter)}
-                  aria-pressed={activeFilter === filter}
-                  className={`flex flex-1 w-full h-[30px] items-center justify-center relative rounded-[40px] border-2 border-solid transition-colors ${
-                    activeFilter === filter 
-                      ? "bg-[#002a8b] border-[#002a8b] text-[#f8f0e2]" 
-                      : "border-[#002a8b] text-[#002a8b]"
-                  }`}
-                >
-                  <div className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[13px] tracking-[0] leading-[normal]">
-                    {filter}
-                  </div>
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => changeMode("short", 5)}
+                className={`px-5 py-1.5 rounded-[40px] border-2 border-solid border-[#002a8b] font-bold [font-family:'TT_Fors_Trial-Bold',Helvetica] text-[13px] transition-colors ${
+                  currentMode === "short"
+                    ? "bg-[#002a8b] text-[#f8f0e2]"
+                    : "bg-transparent text-[#002a8b] hover:bg-[#002a8b]/10"
+                }`}
+              >
+                short break
+              </button>
+              <button
+                type="button"
+                onClick={() => changeMode("long", 15)}
+                className={`px-5 py-1.5 rounded-[40px] border-2 border-solid border-[#002a8b] font-bold [font-family:'TT_Fors_Trial-Bold',Helvetica] text-[13px] transition-colors ${
+                  currentMode === "long"
+                    ? "bg-[#002a8b] text-[#f8f0e2]"
+                    : "bg-transparent text-[#002a8b] hover:bg-[#002a8b]/10"
+                }`}
+              >
+                long break
+              </button>
             </div>
 
-            {/* Row 3: Action Trigger Button */}
-            <button
-              type="button"
-              onClick={() => setShowModal(true)}
-              className="flex h-[55px] items-center justify-between px-[22px] relative self-stretch w-full rounded-[40px] bg-[#002a8b]"
-            >
-              <img
-                className="relative w-[18px] h-[18px]"
-                alt=""
-                aria-hidden="true"
-                src="/Plus.png"
-              />
-              <div className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#f8f0e2] text-[18px] tracking-[0] leading-[normal]">
-                add a task!
-              </div>
-            </button>
+            <div className="text-[82px] font-bold text-[#0038b4] tracking-tight leading-none my-1">
+              {formattedTime}
+            </div>
+            
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={handleStartPause}
+                className="px-6 py-1.5 bg-[#0038b4] text-[#f8f0e2] rounded-[40px] border-2 border-solid border-[#0038b4] font-bold [font-family:'TT_Fors_Trial-Bold',Helvetica] text-[14px] hover:bg-transparent hover:text-[#0038b4] transition-colors"
+                aria-label={isRunning ? "Pause timer" : "Start timer"}
+              >
+                {isRunning ? "Pause" : "Start"}
+              </button>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="px-6 py-1.5 bg-[#0038b4] text-[#f8f0e2] rounded-[40px] border-2 border-solid border-[#0038b4] font-bold [font-family:'TT_Fors_Trial-Bold',Helvetica] text-[14px] hover:bg-transparent hover:text-[#0038b4] transition-colors"
+                aria-label="Reset timer"
+              >
+                Reset
+              </button>
+            </div>
           </section>
 
           {/* Main Task Feed Container */}
-          <main className="flex z-[1] mt-[340px] max-h-[640px] overflow-y-auto fixed top-[40px] left-[500px] sm:left-[566px] right-[120px] px-8 flex-col items-start gap-[25px] pb-12 scrollbar-none">
+          <main className="flex z-[1] max-h-[560px] overflow-y-auto fixed top-[415px] left-[500px] sm:left-[566px] right-[120px] px-8 flex-col items-start gap-[25px] pb-12 scrollbar-none">
             {statusSections.map((section) => {
               const sectionTasks = groupedTasks[section.key];
 
               return (
                 <div key={section.key} className="w-full">
                   <div className="flex w-full items-center gap-2.5 pb-2 relative border-b-2 border-solid border-black">
-                    <h2
-                      className={`relative w-fit ${
-                        section.key === "completed"
-                          ? "[font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold"
-                          : "[font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold"
-                      } text-[#191818] text-lg tracking-[0] leading-[normal]`}
-                    >
+                    <h2 className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#191818] text-lg tracking-[0] leading-[normal]">
                       {section.label}
                     </h2>
                   </div>
@@ -757,13 +671,14 @@ export default function MyTasks(): React.ReactElement {
                       sectionTasks.map((task) => {
                         const style = getTaskStyles(task.priority, task.status);
                         const targetAction = task.status === "completed" ? "incomplete" : "completed";
+                        const isDraggable = task.status !== "completed";
 
                         return (
                           <article
                             key={task.id}
-                            className="relative w-full h-[55px]"
-                            draggable
-                            onDragStart={() => handleDragStart(task.id)}
+                            className={`relative w-full h-[55px] ${isDraggable ? "cursor-move" : ""} ${draggedTaskId === task.id ? "opacity-50" : ""}`}
+                            draggable={isDraggable}
+                            onDragStart={() => isDraggable && handleDragStart(task.id)}
                             onDragEnd={handleDragEnd}
                           >
                             <div className={style.wrapper}>
@@ -987,4 +902,4 @@ export default function MyTasks(): React.ReactElement {
       </div>
     </div>
   );
-} 
+}

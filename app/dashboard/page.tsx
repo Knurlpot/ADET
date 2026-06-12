@@ -14,10 +14,12 @@ export const Dashboard = (): JSX.Element => {
   const [taskInput, setTaskInput] = useState<string>("");
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [scale, setScale] = useState<number>(1);
+  const [remainingTasksCount, setRemainingTasksCount] = useState<number>(0);
 
   useEffect(() => {
     setIsMounted(true);
     fetchUserData();
+    fetchTasksCount();
 
     const updateScale = () => {
       setScale(Math.min(window.innerWidth / 1440, window.innerHeight / 1024));
@@ -49,6 +51,29 @@ export const Dashboard = (): JSX.Element => {
       console.error("Error fetching user data:", error);
       const storedUsername = localStorage.getItem("userUsername") || "User";
       setUsername(storedUsername);
+    }
+  };
+
+  const fetchTasksCount = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        setRemainingTasksCount(0);
+        return;
+      }
+
+      const response = await fetch(`/api/tasks?userId=${userId}`);
+      const data = await response.json();
+
+      if (response.ok && data.tasks) {
+        const pendingAndInProgressTasks = data.tasks.filter(
+          (task: any) => task.TaskStatus === "Pending" || task.TaskStatus === "In-Progress"
+        );
+        setRemainingTasksCount(pendingAndInProgressTasks.length);
+      }
+    } catch (error) {
+      console.error("Error fetching tasks count:", error);
+      setRemainingTasksCount(0);
     }
   };
 
@@ -92,12 +117,12 @@ export const Dashboard = (): JSX.Element => {
           />
 
           <section aria-label="Task summary">
-            <TaskSummarySection />
+            <TaskSummarySection remainingTasks={remainingTasksCount} />
           </section>
 
           {isMounted && (
             <section aria-label="Dashboard greeting">
-              <DashboardGreetingSection username={username} />
+              <DashboardGreetingSection username={username} remainingTasksCount={remainingTasksCount} />
             </section>
           )}
 

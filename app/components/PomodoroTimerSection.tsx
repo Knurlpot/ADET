@@ -1,6 +1,10 @@
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export const PomodoroTimerSection = (): JSX.Element => {
+  const router = useRouter();
   const defaultDurationInSeconds = 25 * 60;
   const [timeRemaining, setTimeRemaining] = useState<number>(
     defaultDurationInSeconds,
@@ -74,7 +78,7 @@ export const PomodoroTimerSection = (): JSX.Element => {
       >
         Pomodoro Timer
       </h2>
-      <p className="absolute top-[50px] left-[359px] w-[190px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[13.6px] text-right tracking-[0] leading-[normal]">
+      <p className="absolute top-[50px] left-[359px] w-[190px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[13.6px] text-right tracking-[0] leading-[normal] cursor-pointer hover:underline" onClick={() => router.push("/pomodoro")}>
         &gt;&gt; try our pomodoro timer
       </p>
       <div

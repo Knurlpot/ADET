@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
 
     console.log("[Tasks API] Fetching tasks for UserID:", userIdNumber);
     const [tasks] = await connection.execute(
-      "SELECT TaskID, TaskName, TaskDesc, TaskCategory, PriorityLevel, TaskStatus FROM Tasks WHERE UserID = ? ORDER BY TaskID DESC",
+      "SELECT TaskID, TaskName, TaskDesc, TaskCategory, PriorityLevel, TaskStatus, DateCompleted FROM Tasks WHERE UserID = ? ORDER BY TaskID DESC",
       [userIdNumber]
     );
     console.log("[Tasks API] Tasks fetched:", tasks);
