@@ -178,7 +178,6 @@ export default function SettingsPage() {
         <div className="bg-[#f8f0e2] w-full min-w-[1440px] min-h-[1024px] flex relative">
           <div className="fixed top-0 left-0 right-0 w-full h-[212px] bg-[#f8f0e2] blur-[20px]" aria-hidden="true" />
           <header className="contents">
-            {/* Added px-8 to position class to match the main layout spacing */}
             <DashboardGreetingSection
               username=""
               greetingText="settings"
@@ -186,7 +185,6 @@ export default function SettingsPage() {
               position="fixed top-[77px] left-[500px] sm:left-[566px] px-8"
               ariaLabel="Settings page header"
             />
-            {/* Added px-8 to match left alignments */}
             <p className="fixed top-[130px] left-[500px] sm:left-[566px] px-8 w-[432px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#00000080] text-[15px] tracking-[0] leading-[normal]">
               keep your personal details private. information you add here is
               visible to anyone who can view your profile.
@@ -208,7 +206,6 @@ export default function SettingsPage() {
           
           <SidebarNavigationSection />
           
-          {/* Main keeps its base margin and horizontal padding parameters unchanged */}
           <main className="flex z-[1] mt-[212px] relative flex-col items-start gap-[25px] px-8 py-8 ml-[500px] sm:ml-[566px]">
             {message && (
               <div
@@ -232,7 +229,6 @@ export default function SettingsPage() {
                 onSubmit={handleSubmit}
                 className="flex w-full flex-col items-start gap-[25px]"
               >
-                {/* Removed the left border or structural margins pushing text inside section to achieve absolute line alignment */}
                 <section className="inline-flex h-[38.81px] items-center gap-[5.55px] relative border-l-[3px] border-solid border-[#002a8b] pl-[12px]">
                   <h2 className="relative w-fit mt-[-17.62px] mb-[-11.62px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[26.2px] tracking-[0] leading-[normal]">
                     edit profile
@@ -293,19 +289,26 @@ export default function SettingsPage() {
                     );
                   })}
                 </div>
+                
+                {/* Updated Button Section */}
                 <button
                   type="submit"
                   disabled={isSaving || isLoading}
-                  className={`flex w-[494px] items-center justify-center gap-2.5 p-2.5 relative flex-[0_0_auto] rounded-[10px] border border-solid transition-colors ${
+                  className={`group flex w-[494px] items-center justify-center gap-2.5 p-2.5 relative flex-[0_0_auto] rounded-[10px] border border-solid transition-colors ${
                     isSaving || isLoading
                       ? "border-[#b0b0b0] bg-[#f0f0f0] opacity-50 cursor-not-allowed"
-                      : "border-[#002a8b] hover:bg-[#002a8b] hover:text-[#f8f0e2]"
+                      : "border-[#002a8b] hover:bg-[#002a8b]"
                   }`}
                 >
-                  <div className="relative w-fit mt-[-1.00px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[19.3px] tracking-[0] leading-[normal]">
+                  <div
+                    className={`relative w-fit mt-[-1.00px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[19.3px] tracking-[0] leading-[normal] transition-colors ${
+                      !isSaving && !isLoading ? "group-hover:text-[#f8f0e2]" : ""
+                    }`}
+                  >
                     {isSaving ? "Saving..." : "save changes"}
                   </div>
                 </button>
+                
               </form>
             )}
           </main>

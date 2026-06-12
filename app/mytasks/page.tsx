@@ -112,7 +112,7 @@ function getAccentColor(priority: TaskPriority, status: TaskStatus): string {
   if (status === "completed") return "#002a8b";
   if (priority === "high-prio") return "#c0392b";
   if (priority === "med-prio") return "#e07b2a";
-  return "#002a8b"; // low-prio
+  return "#22c55e"; // low-prio
 }
 
 // Tag pill styles for the expanded card
@@ -178,6 +178,9 @@ export default function MyTasks(): React.ReactElement {
 
   // ── NEW: which task card is expanded ──────────────────────────────────────
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
+
+  // ── NEW: track editing mode ────────────────────────────────────────────────
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -270,6 +273,49 @@ export default function MyTasks(): React.ReactElement {
         return;
       }
 
+      // ── EDIT MODE: PUT request to update existing task ────────────────────
+      if (editingTaskId !== null) {
+        const payload = {
+          name: taskName.trim(),
+          description: taskDescription.trim(),
+          category: mapFrontendCategoryToDB(taskCategory),
+          priority: mapFrontendPriorityToDB(taskPriority),
+        };
+
+        const response = await fetch(`/api/tasks/${editingTaskId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          setTasks((current) =>
+            current.map((task) =>
+              task.id === editingTaskId
+                ? {
+                    ...task,
+                    name: taskName.trim(),
+                    description: taskDescription.trim(),
+                    category: taskCategory as Exclude<TaskCategory, "all">,
+                    priority: taskPriority as TaskPriority,
+                  }
+                : task
+            )
+          );
+          setTaskName("");
+          setTaskDescription("");
+          setTaskCategory("");
+          setTaskPriority("");
+          setEditingTaskId(null);
+          setShowModal(false);
+        } else {
+          const responseText = await response.text();
+          console.error("Failed to update task:", responseText);
+        }
+        return;
+      }
+
+      // ── ADD MODE: POST request to create new task ─────────────────────────
       const payload = {
         userId,
         name: taskName.trim(),
@@ -425,9 +471,9 @@ export default function MyTasks(): React.ReactElement {
     setTaskDescription(task.description);
     setTaskCategory(task.category);
     setTaskPriority(task.priority);
+    setEditingTaskId(task.id);
     setShowModal(true);
     setExpandedTaskId(null);
-    // TODO: wire up edit mode in TaskModal to PUT instead of POST
   };
 
   // ── NEW: Toggle expanded card ─────────────────────────────────────────────
@@ -672,13 +718,13 @@ export default function MyTasks(): React.ReactElement {
                                       aria-label={`Edit ${task.name}`}
                                       className="flex items-center justify-center w-[28px] h-[28px] hover:opacity-70 transition-opacity"
                                     >
-                                      {/* Pencil icon — SVG inline to allow accent colouring */}
+                                      {/* Pencil icon */}
                                       <svg
                                         width="18"
                                         height="18"
                                         viewBox="0 0 24 24"
                                         fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
+                                        xmlns="EditBlue.png"
                                         aria-hidden="true"
                                       >
                                         <path
@@ -700,7 +746,7 @@ export default function MyTasks(): React.ReactElement {
                                         height="18"
                                         viewBox="0 0 24 24"
                                         fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
+                                        xmlns="DeleteBlue.png"
                                         aria-hidden="true"
                                       >
                                         <path
@@ -732,6 +778,7 @@ export default function MyTasks(): React.ReactElement {
               setTaskDescription("");
               setTaskCategory("");
               setTaskPriority("");
+              setEditingTaskId(null);
             }}
             taskName={taskName}
             onTaskNameChange={setTaskName}
@@ -743,6 +790,8 @@ export default function MyTasks(): React.ReactElement {
             onTaskPriorityChange={setTaskPriority}
             onSubmit={handleSubmit}
             formId={formId}
+            mode={editingTaskId !== null ? "edit" : "add"}
+            editingTaskId={editingTaskId}
           />
 
         </div>

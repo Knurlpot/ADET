@@ -17,8 +17,8 @@ interface TaskModalProps {
   taskPriority: TaskPriority | "";
   onTaskPriorityChange: (priority: TaskPriority | "") => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  formId: string;
-}
+  formId: string;  mode?: "add" | "edit";
+  editingTaskId?: number | null;}
 
 export function TaskModal({
   showModal,
@@ -33,6 +33,8 @@ export function TaskModal({
   onTaskPriorityChange,
   onSubmit,
   formId,
+  mode = "add",
+  editingTaskId = null,
 }: TaskModalProps) {
   if (!showModal) return null;
 
@@ -49,7 +51,7 @@ export function TaskModal({
       >
         <div className="w-full flex justify-between items-center">
           <h2 className="text-[#002a8b] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[30px]">
-            add a task
+            {mode === "edit" ? "edit task" : "add a task"}
           </h2>
           <button
             type="button"
@@ -134,7 +136,7 @@ export function TaskModal({
             type="submit"
             className="w-full h-[45px] bg-[#002a8b] rounded-[10px] mt-2 flex items-center justify-center [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#f8f0e2] text-[18px] transition-opacity hover:opacity-90"
           >
-            add task!
+            {mode === "edit" ? "save changes" : "add task!"}
           </button>
         </form>
       </section>

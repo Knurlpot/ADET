@@ -17,16 +17,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const taskId = id;
     console.log("[Tasks Update API] Task ID from params:", taskId);
     
-    const { status, dateCompleted } = body;
+    const { status, dateCompleted, name, description, category, priority } = body;
     
     console.log("[Tasks Update API] Received status:", status);
     console.log("[Tasks Update API] Received dateCompleted:", dateCompleted);
 
-    if (!taskId || !status) {
-      console.log("[Tasks Update API] Missing required fields - taskId:", taskId, "status:", status);
+    if (!taskId) {
+      console.log("[Tasks Update API] Missing taskId");
       const errorResponse = { 
-        error: "Missing required fields (taskId, status)", 
-        received: { taskId, status } 
+        error: "Missing required field: taskId", 
+        received: { taskId } 
       };
       console.log("[Tasks Update API] Sending error response:", errorResponse);
       return NextResponse.json(errorResponse, { status: 400 });
@@ -47,22 +47,41 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     console.log("[Tasks Update API] Updating task:", taskIdNumber);
     
-    if (dateCompleted) {
-      console.log("[Tasks Update API] Updating with dateCompleted:", dateCompleted);
-      // Update task with status and completion date
+    // ── NEW: Handle full task edit (name, description, category, priority) ──
+    if (name && description && category && priority) {
+      console.log("[Tasks Update API] Full task edit mode");
       const updateResult = await connection.execute(
-        "UPDATE Tasks SET TaskStatus = ?, DateCompleted = ? WHERE TaskID = ?",
-        [status, dateCompleted, taskIdNumber]
+        "UPDATE Tasks SET TaskName = ?, TaskDesc = ?, TaskCategory = ?, PriorityLevel = ? WHERE TaskID = ?",
+        [name, description, category, priority, taskIdNumber]
       );
-      console.log("[Tasks Update API] Update result (with date):", updateResult);
+      console.log("[Tasks Update API] Update result (full edit):", updateResult);
+    } 
+    // ── Handle status-only update (with optional dateCompleted) ──
+    else if (status) {
+      console.log("[Tasks Update API] Status update mode");
+      if (dateCompleted) {
+        console.log("[Tasks Update API] Updating with dateCompleted:", dateCompleted);
+        // Update task with status and completion date
+        const updateResult = await connection.execute(
+          "UPDATE Tasks SET TaskStatus = ?, DateCompleted = ? WHERE TaskID = ?",
+          [status, dateCompleted, taskIdNumber]
+        );
+        console.log("[Tasks Update API] Update result (with date):", updateResult);
+      } else {
+        console.log("[Tasks Update API] Updating status only (no date)");
+        // Update task with status only
+        const updateResult = await connection.execute(
+          "UPDATE Tasks SET TaskStatus = ? WHERE TaskID = ?",
+          [status, taskIdNumber]
+        );
+        console.log("[Tasks Update API] Update result (no date):", updateResult);
+      }
     } else {
-      console.log("[Tasks Update API] Updating status only (no date)");
-      // Update task with status only
-      const updateResult = await connection.execute(
-        "UPDATE Tasks SET TaskStatus = ? WHERE TaskID = ?",
-        [status, taskIdNumber]
+      console.log("[Tasks Update API] No valid update fields provided");
+      return NextResponse.json(
+        { error: "No valid update fields provided. Provide either (status, dateCompleted) or (name, description, category, priority)" },
+        { status: 400 }
       );
-      console.log("[Tasks Update API] Update result (no date):", updateResult);
     }
     
     console.log("[Tasks Update API] Task updated successfully");
@@ -116,6 +135,106 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const errorResponse: any = { 
       error: "Failed to update task",
+      message: errorMessage,
+      code: errorCode,
+      errno: errorErrno
+    };
+    
+    if (process.env.NODE_ENV === "development") {
+      errorResponse.stack = errorStack;
+    }
+
+    return NextResponse.json(errorResponse, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  let connection: any = null;
+  
+  try {
+    console.log("[Tasks Delete API] DELETE request received at:", new Date().toISOString());
+    
+    const { id } = await params;
+    console.log("[Tasks Delete API] Params.id:", id);
+    
+    const taskId = id;
+    console.log("[Tasks Delete API] Task ID from params:", taskId);
+
+    if (!taskId) {
+      console.log("[Tasks Delete API] Missing taskId");
+      return NextResponse.json(
+        { error: "Missing required field: taskId" },
+        { status: 400 }
+      );
+    }
+
+    const taskIdNumber = parseInt(taskId, 10);
+    if (isNaN(taskIdNumber)) {
+      console.log("[Tasks Delete API] Invalid taskId:", taskId);
+      return NextResponse.json(
+        { error: "Invalid taskId", taskId },
+        { status: 400 }
+      );
+    }
+
+    console.log("[Tasks Delete API] Connecting to database...");
+    connection = await getConnection();
+    console.log("[Tasks Delete API] Connected to database");
+
+    console.log("[Tasks Delete API] Deleting task:", taskIdNumber);
+    const deleteResult = await connection.execute(
+      "DELETE FROM Tasks WHERE TaskID = ?",
+      [taskIdNumber]
+    );
+    console.log("[Tasks Delete API] Delete result:", deleteResult);
+    
+    console.log("[Tasks Delete API] Task deleted successfully");
+
+    await connection.end();
+    connection = null;
+    console.log("[Tasks Delete API] Connection closed");
+
+    return NextResponse.json(
+      { message: "Task deleted successfully", taskId: taskIdNumber },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("[Tasks Delete API] Error deleting task:", error);
+    
+    let errorMessage = "Unknown error";
+    let errorCode = "UNKNOWN";
+    let errorErrno = "UNKNOWN";
+    let errorStack = "";
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorStack = error.stack || "";
+    } else {
+      errorMessage = String(error);
+    }
+    
+    if ((error as any)?.code) {
+      errorCode = (error as any).code;
+    }
+    if ((error as any)?.errno) {
+      errorErrno = (error as any).errno;
+    }
+    
+    console.error("[Tasks Delete API] Error details - Message:", errorMessage);
+    console.error("[Tasks Delete API] Error details - Code:", errorCode);
+    console.error("[Tasks Delete API] Error details - Errno:", errorErrno);
+    console.error("[Tasks Delete API] Error details - Stack:", errorStack);
+    
+    try {
+      if (connection) {
+        await connection.end();
+      }
+    } catch (closeError) {
+      console.error("[Tasks Delete API] Error closing connection:", closeError);
+    }
+
+    const errorResponse: any = { 
+      error: "Failed to delete task",
       message: errorMessage,
       code: errorCode,
       errno: errorErrno

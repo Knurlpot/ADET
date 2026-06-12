@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+// Import useRouter from next/navigation
+import { useRouter } from "next/navigation"; 
 import { DashboardGreetingSection } from "@/app/components/DashboardGreetingSection";
 import { PomodoroTimerSection } from "@/app/components/PomodoroTimerSection";
 import { SidebarNavigationSection } from "@/app/components/SidebarNavigationSection";
@@ -10,8 +12,8 @@ import { TaskTrackerSection } from "@/app/components/TaskTrackerSection";
 import { TimeOfDaySection } from "@/app/components/TimeOfDaySection";
 
 export const Dashboard = (): JSX.Element => {
+  const router = useRouter(); // Initialize the router
   const [username, setUsername] = useState<string>("");
-  const [taskInput, setTaskInput] = useState<string>("");
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [scale, setScale] = useState<number>(1);
   const [remainingTasksCount, setRemainingTasksCount] = useState<number>(0);
@@ -77,11 +79,10 @@ export const Dashboard = (): JSX.Element => {
     }
   };
 
-  const handleAddTask = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const normalizedValue = taskInput.trim();
-    if (!normalizedValue) return;
-    setTaskInput("");
+  // Handler to redirect the user to your MyTasks route
+  const handleNavigateToTasks = () => {
+    // Adjust this path if your route is structured differently (e.g., "/dashboard/tasks")
+    router.push("/mytasks"); 
   };
 
   return (
@@ -148,30 +149,16 @@ export const Dashboard = (): JSX.Element => {
             <div className="absolute top-[713px] left-[1070px] w-[295px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[106.1px] tracking-[0] leading-[normal]" />
           </section>
 
-          <form onSubmit={handleAddTask} className="contents">
-            <label htmlFor="task-input" className="sr-only">
-              Add task
-            </label>
-            <input
-              id="task-input"
-              name="task"
-              type="text"
-              value={taskInput}
-              onChange={(event) => setTaskInput(event.target.value)}
-              placeholder="Add a task"
-              className="absolute opacity-0 pointer-events-none"
-              aria-hidden="true"
-              tabIndex={-1}
-            />
-            <button
-              type="submit"
-              className="flex w-[855px] h-[50px] items-center justify-center gap-[4.41px] px-[22.06px] py-[4.41px] absolute top-[926px] left-[516px] rounded-[22.06px] bg-[linear-gradient(0deg,rgba(0,42,139,1)_0%,rgba(0,42,139,1)_100%),linear-gradient(0deg,rgba(255,255,255,1)_0%,rgba(255,255,255,1)_100%)] cursor-pointer"
-            >
-              <span className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#f8f0e2] text-[21.3px] tracking-[0] leading-[normal]">
-                add task!
-              </span>
-            </button>
-          </form>
+          {/* Cleaned up: Removed hidden form element and turned button into a semantic click handler */}
+          <button
+            type="button"
+            onClick={handleNavigateToTasks}
+            className="flex w-[855px] h-[50px] items-center justify-center gap-[4.41px] px-[22.06px] py-[4.41px] absolute top-[926px] left-[516px] rounded-[22.06px] bg-[linear-gradient(0deg,rgba(0,42,139,1)_0%,rgba(0,42,139,1)_100%),linear-gradient(0deg,rgba(255,255,255,1)_0%,rgba(255,255,255,1)_100%)] cursor-pointer hover:opacity-90 transition-opacity"
+          >
+            <span className="relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#f8f0e2] text-[21.3px] tracking-[0] leading-[normal]">
+              add task!
+            </span>
+          </button>
         </main>
       </div>
     </div>
