@@ -28,8 +28,6 @@ CREATE TABLE Tasks (
         'Fitness',
         'Others'
     ) DEFAULT 'Others',
-    TaskStart DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    TaskEnd DATETIME NOT NULL,
     TaskStatus ENUM(
         'Pending',
         'In-Progress',

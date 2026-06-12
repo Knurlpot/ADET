@@ -1,8 +1,10 @@
 "use client";
 
-import { FormEvent, useMemo, useState, useEffect, useId } from "react";
+import React, { FormEvent, useMemo, useState, useEffect, useId } from "react";
 import { SidebarNavigationSection } from "@/app/components/SidebarNavigationSection";
 import { DashboardGreetingSection } from "@/app/components/DashboardGreetingSection";
+import { TaskModal } from "@/app/components/TaskModal";
+import { getTaskStyles } from "@/app/components/TaskStyles";
 
 type TaskStatus = "completed" | "in-progress" | "pending";
 type TaskPriority = "low-prio" | "med-prio" | "high-prio";
@@ -23,6 +25,87 @@ type UserProfile = {
   Email: string;
 };
 
+// Database schema types
+type DBTask = {
+  TaskID: number;
+  TaskName: string;
+  TaskDesc: string;
+  TaskCategory: "Personal" | "School" | "Work" | "Fitness" | "Others";
+  PriorityLevel: "Low" | "Medium" | "High";
+  TaskStatus: "Pending" | "In-Progress" | "Completed";
+};
+
+// Mapping functions between frontend and database
+function mapDBCategoryToFrontend(dbCategory: string): Exclude<TaskCategory, "all"> {
+  const categoryMap: { [key: string]: Exclude<TaskCategory, "all"> } = {
+    "Personal": "personal",
+    "School": "school",
+    "Work": "work",
+    "Fitness": "fitness",
+    "Others": "others",
+  };
+  return categoryMap[dbCategory] || "others";
+}
+
+function mapFrontendCategoryToDB(frontendCategory: string): "Personal" | "School" | "Work" | "Fitness" | "Others" {
+  const categoryMap: { [key: string]: "Personal" | "School" | "Work" | "Fitness" | "Others" } = {
+    "personal": "Personal",
+    "school": "School",
+    "work": "Work",
+    "fitness": "Fitness",
+    "others": "Others",
+  };
+  return categoryMap[frontendCategory] || "Others";
+}
+
+function mapDBPriorityToFrontend(dbPriority: string): TaskPriority {
+  const priorityMap: { [key: string]: TaskPriority } = {
+    "Low": "low-prio",
+    "Medium": "med-prio",
+    "High": "high-prio",
+  };
+  return priorityMap[dbPriority] || "med-prio";
+}
+
+function mapFrontendPriorityToDB(frontendPriority: string): "Low" | "Medium" | "High" {
+  const priorityMap: { [key: string]: "Low" | "Medium" | "High" } = {
+    "low-prio": "Low",
+    "med-prio": "Medium",
+    "high-prio": "High",
+  };
+  return priorityMap[frontendPriority] || "Medium";
+}
+
+function mapDBStatusToFrontend(dbStatus: string): TaskStatus {
+  const statusMap: { [key: string]: TaskStatus } = {
+    "Completed": "completed",
+    "In-Progress": "in-progress",
+    "Pending": "pending",
+  };
+  return statusMap[dbStatus] || "pending";
+}
+
+function mapFrontendStatusToDB(frontendStatus: string): "Completed" | "In-Progress" | "Pending" {
+  const statusMap: { [key: string]: "Completed" | "In-Progress" | "Pending" } = {
+    "completed": "Completed",
+    "in-progress": "In-Progress",
+    "pending": "Pending",
+  };
+  return statusMap[frontendStatus] || "Pending";
+}
+
+// Convert DB task to frontend task
+function convertDBTaskToFrontendTask(dbTask: DBTask): Task {
+  return {
+    id: dbTask.TaskID,
+    name: dbTask.TaskName,
+    description: dbTask.TaskDesc,
+    category: mapDBCategoryToFrontend(dbTask.TaskCategory) as Exclude<TaskCategory, "all">,
+    priority: mapDBPriorityToFrontend(dbTask.PriorityLevel),
+    status: mapDBStatusToFrontend(dbTask.TaskStatus),
+  };
+}
+
 const filterOptions: Array<Exclude<TaskCategory, "all">> = [
   "personal",
   "school",
@@ -31,40 +114,7 @@ const filterOptions: Array<Exclude<TaskCategory, "all">> = [
   "others",
 ];
 
-const initialTasks: Task[] = [
-  {
-    id: 1,
-    name: "task",
-    description: "Completed task",
-    category: "personal",
-    priority: "med-prio",
-    status: "completed",
-  },
-  {
-    id: 2,
-    name: "task",
-    description: "In progress task",
-    category: "school",
-    priority: "high-prio",
-    status: "in-progress",
-  },
-  {
-    id: 3,
-    name: "task",
-    description: "Pending task",
-    category: "work",
-    priority: "low-prio",
-    status: "pending",
-  },
-  {
-    id: 4,
-    name: "task",
-    description: "Pending task",
-    category: "others",
-    priority: "high-prio",
-    status: "pending",
-  },
-];
+const initialTasks: Task[] = [];
 
 const statusSections: Array<{
   key: TaskStatus;
@@ -75,52 +125,7 @@ const statusSections: Array<{
   { key: "pending", label: "pending..." },
 ];
 
-const taskStyles: Record<
-  TaskStatus,
-  {
-    wrapper: string;
-    circle: string;
-    text: string;
-    dots: string;
-    filled?: boolean;
-  }
-> = {
-  completed: {
-    wrapper:
-      "flex w-full h-[55px] items-center justify-between px-[14.97px] py-[7.49px] relative bg-[#002a8b] rounded-[40px]",
-    circle: "relative w-[41px] h-[41.08px]",
-    text: "relative w-fit [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] text-[20.9px] tracking-[0] leading-[normal]",
-    dots: "[-webkit-text-stroke:1px_#f8f0e2] text-[#f8f0e2] relative w-fit rotate-90 [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[17.2px] tracking-[0] leading-[normal]",
-    filled: true,
-  },
-  "in-progress": {
-    wrapper:
-      "border-[#002a8b] flex w-full h-[55px] items-center justify-between px-[14.97px] py-[7.49px] relative rounded-[40px] border-4 border-solid",
-    circle:
-      "relative w-[39.67px] h-[39.67px] rounded-[19.84px] border-[3.74px] border-solid border-[#002a8b]",
-    text: "relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[20.9px] tracking-[0] leading-[normal]",
-    dots: "[-webkit-text-stroke:1px_#002a8b] text-[#002a8b] relative w-fit rotate-90 [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[17.2px] tracking-[0] leading-[normal]",
-  },
-  pending: {
-    wrapper:
-      "border-[#de6f20] flex w-full h-[55px] items-center justify-between px-[14.97px] py-[7.49px] relative rounded-[40px] border-4 border-solid",
-    circle:
-      "border-[#de6f20] relative w-[39.67px] h-[39.67px] rounded-[19.84px] border-[3.74px] border-solid",
-    text: "relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#de6f20] text-[20.9px] tracking-[0] leading-[normal]",
-    dots: "[-webkit-text-stroke:1px_#de6f20] text-[#de6f20] relative w-fit rotate-90 [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[17.2px] tracking-[0] leading-[normal]",
-  },
-};
-
-const highPendingTaskStyle = {
-  wrapper:
-    "border-[#cf1515] flex w-full h-[55px] items-center justify-between px-[14.97px] py-[7.49px] relative rounded-[40px] border-4 border-solid",
-  circle:
-    "border-[#cf1515] relative w-[39.67px] h-[39.67px] rounded-[19.84px] border-[3.74px] border-solid",
-  text: "relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#cf1515] text-[20.9px] tracking-[0] leading-[normal]",
-  dots: "[-webkit-text-stroke:1px_#cf1515] text-[#cf1515] relative w-fit rotate-90 [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[17.2px] tracking-[0] leading-[normal]",
-};
-
-export default function MyTasks(): JSX.Element {
+export default function MyTasks(): React.ReactElement {
   const formId = useId();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [search, setSearch] = useState("");
@@ -143,30 +148,48 @@ export default function MyTasks(): JSX.Element {
     updateScale();
     window.addEventListener("resize", updateScale);
 
-    async function fetchUser() {
+    async function fetchUserAndTasks() {
       try {
         const userId = localStorage.getItem("userId");
         if (!userId) {
           setUser(null);
+          setTasks([]);
           return;
         }
 
-        const response = await fetch(`/api/settings?userId=${userId}`);
-        const data = await response.json();
+        // Fetch user info
+        const userResponse = await fetch(`/api/settings?userId=${userId}`);
+        const userData = await userResponse.json();
 
-        if (response.ok && data.user) {
-          setUser(data.user);
+        if (userResponse.ok && userData.user) {
+          setUser(userData.user);
         } else {
           console.error("Failed to load user information");
           setUser(null);
         }
+
+        // Fetch tasks
+        const tasksResponse = await fetch(`/api/tasks?userId=${userId}`);
+        const tasksData = await tasksResponse.json();
+
+        if (tasksResponse.ok && tasksData.tasks) {
+          // Convert DB tasks to frontend tasks
+          const frontendTasks = tasksData.tasks.map((dbTask: DBTask) => 
+            convertDBTaskToFrontendTask(dbTask)
+          );
+          setTasks(frontendTasks);
+        } else {
+          console.error("Failed to load tasks:", tasksData);
+          setTasks([]);
+        }
       } catch (err) {
-        console.error("Failed to load user information", err);
+        console.error("Error loading data:", err);
         setUser(null);
+        setTasks([]);
       }
     }
     
-    fetchUser();
+    fetchUserAndTasks();
     return () => window.removeEventListener("resize", updateScale);
   }, []);
 
@@ -193,7 +216,7 @@ export default function MyTasks(): JSX.Element {
     };
   }, [filteredTasks]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (
@@ -202,24 +225,183 @@ export default function MyTasks(): JSX.Element {
       !taskCategory ||
       !taskPriority
     ) {
+      console.warn("Form validation failed - missing required fields");
       return;
     }
 
-    const newTask: Task = {
-      id: Date.now(),
-      name: taskName.trim(),
-      description: taskDescription.trim(),
-      category: taskCategory,
-      priority: taskPriority,
-      status: "pending",
-    };
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        console.error("User ID not found in localStorage");
+        return;
+      }
 
-    setTasks((current) => [...current, newTask]);
-    setTaskName("");
-    setTaskDescription("");
-    setTaskCategory("");
-    setTaskPriority("");
-    setShowModal(false);
+      console.log("Submitting task with userId:", userId);
+      const payload = {
+        userId,
+        name: taskName.trim(),
+        description: taskDescription.trim(),
+        category: mapFrontendCategoryToDB(taskCategory),
+        priority: mapFrontendPriorityToDB(taskPriority),
+        status: mapFrontendStatusToDB("pending"),
+      };
+      console.log("Payload:", payload);
+
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log("Response received - Status:", response.status, "StatusText:", response.statusText);
+
+      let responseData: any;
+      const contentType = response.headers.get("content-type");
+      console.log("Content-Type:", contentType);
+
+      if (contentType?.includes("application/json")) {
+        try {
+          responseData = await response.json();
+          console.log("Parsed JSON response:", responseData);
+        } catch (parseError) {
+          console.error("Failed to parse JSON:", parseError);
+          const text = await response.text();
+          console.error("Raw response text:", text);
+          responseData = { error: "Failed to parse response", rawText: text };
+        }
+      } else {
+        const text = await response.text();
+        console.error("Non-JSON response:", text);
+        responseData = { error: "Non-JSON response", rawText: text };
+      }
+
+      if (response.ok) {
+        console.log("Task created successfully");
+        
+        // Add the new task to the local state with the returned ID
+        const newTask: Task = {
+          id: responseData.taskId || Date.now(),
+          name: taskName.trim(),
+          description: taskDescription.trim(),
+          category: taskCategory,
+          priority: taskPriority,
+          status: "pending",
+        };
+
+        setTasks((current) => [...current, newTask]);
+        setTaskName("");
+        setTaskDescription("");
+        setTaskCategory("");
+        setTaskPriority("");
+        setShowModal(false);
+      } else {
+        console.error("Failed to create task - Status:", response.status);
+        console.error("Error response data:", responseData);
+        
+        // Display detailed error information
+        const errorMsg = responseData?.message || responseData?.error || "Unknown error";
+        const errorCode = responseData?.code || responseData?.errno || "N/A";
+        console.error(`API Error: ${errorMsg} (Code: ${errorCode})`);
+        
+        if (responseData?.stack && process.env.NODE_ENV === "development") {
+          console.error("Stack trace:", responseData.stack);
+        }
+      }
+    } catch (err) {
+      console.error("Exception in handleSubmit:", err);
+      if (err instanceof Error) {
+        console.error("Error message:", err.message);
+        console.error("Error stack:", err.stack);
+      }
+    }
+  };
+
+  const handleCompleteTask = async (taskId: number) => {
+    try {
+      console.log("=== handleCompleteTask START ===");
+      console.log("Task ID to complete:", taskId);
+      console.log("Task ID type:", typeof taskId);
+      
+      const completedStatus = mapFrontendStatusToDB("completed");
+      // Format date for MySQL: YYYY-MM-DD HH:MM:SS (strip milliseconds and timezone)
+      const isoString = new Date().toISOString();
+      const completionDate = isoString.substring(0, 19).replace('T', ' ');
+      
+      console.log("Status from mapping:", completedStatus);
+      console.log("Status type:", typeof completedStatus);
+      console.log("Completion date:", completionDate);
+      
+      const payload = {
+        status: completedStatus,
+        dateCompleted: completionDate,
+      };
+      
+      console.log("Payload being sent:", JSON.stringify(payload));
+      console.log("URL being called:", `/api/tasks/${taskId}`);
+      
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      console.log("=== Response Received ===");
+      console.log("Update response - Status:", response.status);
+      console.log("Update response - StatusText:", response.statusText);
+      console.log("Update response - OK:", response.ok);
+      
+      const responseText = await response.text();
+      console.log("Raw response text:", responseText);
+      console.log("Raw response text length:", responseText.length);
+
+      let errorData: any;
+      if (responseText && responseText.length > 0) {
+        try {
+          errorData = JSON.parse(responseText);
+        } catch (parseErr) {
+          errorData = { error: "Failed to parse response", rawText: responseText };
+        }
+      } else {
+        errorData = { error: "Empty response from API" };
+      }
+
+      console.log("Parsed response data:", errorData);
+
+      if (response.ok) {
+        console.log("✅ Task marked as completed successfully");
+        
+        // Update local state
+        setTasks((current) =>
+          current.map((task) =>
+            task.id === taskId
+              ? { ...task, status: "completed" }
+              : task
+          )
+        );
+      } else {
+        console.error("❌ Failed to mark task as completed");
+        console.error("Response error:", errorData);
+        console.error("Full error details:", {
+          status: response.status,
+          message: errorData?.message,
+          code: errorData?.code,
+          errno: errorData?.errno,
+          stack: errorData?.stack,
+          received: errorData?.received
+        });
+      }
+      console.log("=== handleCompleteTask END ===");
+    } catch (err) {
+      console.error("❌ Exception in handleCompleteTask:", err);
+      if (err instanceof Error) {
+        console.error("Error message:", err.message);
+        console.error("Error stack:", err.stack);
+      }
+    }
   };
 
   return (
@@ -369,14 +551,8 @@ export default function MyTasks(): JSX.Element {
                     {sectionTasks.length === 0 ? (
                       <p className="text-sm font-normal text-[#00000050] italic px-4">No tasks found.</p>
                     ) : (
-                      sectionTasks.map((task, index) => {
-                        const isRedPending =
-                          task.status === "pending" &&
-                          task.priority === "high-prio" &&
-                          index > 0;
-                        const style = isRedPending
-                          ? highPendingTaskStyle
-                          : taskStyles[task.status];
+                      sectionTasks.map((task) => {
+                        const style = getTaskStyles(task.priority, task.status);
 
                         return (
                           <article
@@ -392,7 +568,12 @@ export default function MyTasks(): JSX.Element {
                                   src="/Check.svg"
                                 />
                               ) : (
-                                <div className={style.circle} aria-hidden="true" />
+                                <button
+                                  type="button"
+                                  onClick={() => handleCompleteTask(task.id)}
+                                  aria-label={`Mark ${task.name} as completed`}
+                                  className={style.circle}
+                                />
                               )}
                               <div className={style.text}>{task.name}</div>
                               <button
@@ -414,100 +595,23 @@ export default function MyTasks(): JSX.Element {
           </main>
 
           {/* Modal Container */}
-          {showModal && (
-            <>
-              <div className="fixed inset-0 z-[8] bg-[#d9d9d933] backdrop-blur-[2.0px]" onClick={() => setShowModal(false)} />
-              <section
-                aria-label="Add a task modal"
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] bg-[#f8f0e2] rounded-[40px] border-[5px] border-solid border-[#002a8b] p-8 z-[9] flex flex-col items-center gap-6"
-              >
-                <div className="w-full flex justify-between items-center">
-                  <h2 className="text-[#002a8b] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[30px]">
-                    add a task
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    aria-label="Close add task modal"
-                  >
-                    <img className="w-[23px] h-[23px]" alt="" aria-hidden="true" src="/Exit.png" />
-                  </button>
-                </div>
-
-                <form id={formId} onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-                  <label className="flex h-[45px] items-center px-4 bg-[#f8f0e2] rounded-[7px] border-[1.73px] border-solid border-[#002a8b]">
-                    <span className="sr-only">task name</span>
-                    <input
-                      type="text"
-                      value={taskName}
-                      onChange={(event) => setTaskName(event.target.value)}
-                      placeholder="task name"
-                      className="w-full bg-transparent outline-none [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] placeholder:text-[#002a8b80] text-[18px]"
-                    />
-                  </label>
-
-                  <label className="flex flex-col px-4 py-3 bg-[#f8f0e2] rounded-[7px] border-[1.73px] border-solid border-[#002a8b]">
-                    <span className="sr-only">task description</span>
-                    <textarea
-                      value={taskDescription}
-                      onChange={(event) => setTaskDescription(event.target.value)}
-                      placeholder="task description"
-                      rows={4}
-                      className="w-full bg-transparent outline-none resize-none [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#000000] placeholder:text-[#002a8b80] text-[18px]"
-                    />
-                  </label>
-
-                  <div className="flex gap-4 w-full">
-                    <label className="flex h-[43px] items-center justify-between px-4 bg-[#f8f0e2] rounded-[8px] border-[1.73px] border-solid border-[#002a8b] w-1/2 relative">
-                      <span className="sr-only">category</span>
-                      <select
-                        value={taskCategory}
-                        onChange={(event) =>
-                          setTaskCategory(event.target.value as TaskCategory | "")
-                        }
-                        className="w-full bg-transparent outline-none appearance-none [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[16px] pr-6"
-                      >
-                        <option value="">category</option>
-                        <option value="personal">personal</option>
-                        <option value="school">school</option>
-                        <option value="work">work</option>
-                        <option value="fitness">fitness</option>
-                        <option value="others">others</option>
-                      </select>
-                      <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#002a8b] text-[12px]">▼</div>
-                    </label>
-
-                    <label className="flex h-[43px] items-center justify-between px-4 bg-[#f8f0e2] rounded-[8px] border-[1.73px] border-solid border-[#002a8b] w-1/2 relative">
-                      <span className="sr-only">priority level</span>
-                      <select
-                        value={taskPriority}
-                        onChange={(event) =>
-                          setTaskPriority(event.target.value as TaskPriority | "")
-                        }
-                        className="w-full bg-transparent outline-none appearance-none [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[16px] pr-6"
-                      >
-                        <option value="">priority level</option>
-                        <option value="low-prio">low-prio</option>
-                        <option value="med-prio">med-prio</option>
-                        <option value="high-prio">high-prio</option>
-                      </select>
-                      <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#002a8b] text-[12px]">▼</div>
-                    </label>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full h-[45px] bg-[#002a8b] rounded-[10px] mt-2 flex items-center justify-center [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#f8f0e2] text-[18px] transition-opacity hover:opacity-90"
-                  >
-                    add task!
-                  </button>
-                </form>
-              </section>
-            </>
-          )}
+          <TaskModal
+            showModal={showModal}
+            onClose={() => setShowModal(false)}
+            taskName={taskName}
+            onTaskNameChange={setTaskName}
+            taskDescription={taskDescription}
+            onTaskDescriptionChange={setTaskDescription}
+            taskCategory={taskCategory}
+            onTaskCategoryChange={setTaskCategory}
+            taskPriority={taskPriority}
+            onTaskPriorityChange={setTaskPriority}
+            onSubmit={handleSubmit}
+            formId={formId}
+          />
 
         </div>
       </div>
     </div>
   );
-}
+} 

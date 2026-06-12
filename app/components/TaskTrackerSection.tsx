@@ -1,6 +1,25 @@
-const statCards = [
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+interface DBTask {
+  TaskID: number;
+  TaskName: string;
+  TaskDesc: string;
+  TaskCategory: "Personal" | "School" | "Work" | "Fitness" | "Others";
+  PriorityLevel: "Low" | "Medium" | "High";
+  TaskStatus: "Pending" | "In-Progress" | "Completed";
+}
+
+const getStatCards = (
+  totalTasks: number,
+  completedTasks: number,
+  pendingTasks: number,
+  inProgressTasks: number
+) => [
   {
-    value: "20",
+    value: totalTasks.toString(),
     label: "Total Tasks",
     className:
       "flex flex-col w-[166px] h-40 items-center justify-center p-[21.46px] absolute top-[83px] left-6 bg-[#002a8b] rounded-[15px]",
@@ -10,7 +29,7 @@ const statCards = [
       "relative self-stretch [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] text-[14.6px] text-center tracking-[0] leading-[normal]",
   },
   {
-    value: "5",
+    value: completedTasks.toString(),
     label: "Completed Tasks",
     className:
       "flex flex-col w-[166px] h-[159px] items-center justify-center p-[21.46px] absolute top-[84px] left-[196px] bg-[#3e5ba1] rounded-[15px]",
@@ -20,7 +39,7 @@ const statCards = [
       "relative self-stretch [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] text-[14.6px] text-center tracking-[0] leading-[normal]",
   },
   {
-    value: "6",
+    value: pendingTasks.toString(),
     label: "Pending Tasks",
     className:
       "flex flex-col w-[166px] h-[101px] items-center justify-center p-[21.46px] absolute top-[248px] left-6 bg-[#7c8db6] rounded-[15px]",
@@ -30,7 +49,7 @@ const statCards = [
       "relative w-[99.73px] mb-[-0.89px] [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#f8f0e2] text-[11.8px] text-center tracking-[0] leading-[normal]",
   },
   {
-    value: "4",
+    value: inProgressTasks.toString(),
     label: "In-Progress",
     className:
       "flex flex-col w-[166px] h-[101px] items-center justify-center p-[21.46px] absolute top-[248px] left-[196px] bg-[#7c8db6] rounded-[15px]",
@@ -42,6 +61,60 @@ const statCards = [
 ];
 
 export const TaskTrackerSection = (): JSX.Element => {
+  const router = useRouter();
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [completedTasks, setCompletedTasks] = useState(0);
+  const [pendingTasks, setPendingTasks] = useState(0);
+  const [inProgressTasks, setInProgressTasks] = useState(0);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const userId = localStorage.getItem("userId");
+        if (!userId) {
+          return;
+        }
+
+        const response = await fetch(`/api/tasks?userId=${userId}`);
+        const data = await response.json();
+
+        if (response.ok && data.tasks) {
+          const tasks: DBTask[] = data.tasks;
+          const total = tasks.length;
+          const completed = tasks.filter(
+            (task) => task.TaskStatus === "Completed"
+          ).length;
+          const pending = tasks.filter(
+            (task) => task.TaskStatus === "Pending"
+          ).length;
+          const inProgress = tasks.filter(
+            (task) => task.TaskStatus === "In-Progress"
+          ).length;
+
+          setTotalTasks(total);
+          setCompletedTasks(completed);
+          setPendingTasks(pending);
+          setInProgressTasks(inProgress);
+        }
+      } catch (error) {
+        console.error("Error fetching tasks:", error);
+      }
+    };
+
+    fetchTasks();
+  }, []);
+
+  const statCards = getStatCards(
+    totalTasks,
+    completedTasks,
+    pendingTasks,
+    inProgressTasks
+  );
+
+  const handleNavigateToMyTasks = () => {
+    router.push("/mytasks");
+  };
+
   return (
     <section
       aria-labelledby="task-tracker-heading"
@@ -60,8 +133,9 @@ export const TaskTrackerSection = (): JSX.Element => {
           </div>
           <button
             type="button"
+            onClick={handleNavigateToMyTasks}
             aria-label="View my tasks"
-            className="absolute top-10 left-64 w-24 [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[13.6px] text-right tracking-[0] leading-[normal]"
+            className="absolute top-10 left-64 w-24 [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[13.6px] text-right tracking-[0] leading-[normal] cursor-pointer hover:underline"
           >
             &gt;&gt; my tasks
           </button>

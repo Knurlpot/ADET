@@ -94,7 +94,11 @@ export const SidebarNavigationSection = (): JSX.Element => {
   };
 
   const getIconSrc = (item: NavItem, isActive: boolean, isHovered: boolean) => {
-    // Dashboard uses light icon when not active
+    // Dashboard shows dashboard.svg when hovered
+    if (item.label === "Dashboard" && isHovered) {
+      return item.icon;
+    }
+    // Dashboard uses light icon when not active and not hovered
     if (item.label === "Dashboard" && !isActive) {
       return item.lightIcon || item.icon;
     }
