@@ -348,10 +348,23 @@ export default function Pomodoro(): React.ReactElement {
   }, [tasks, search, activeFilter]);
 
   const groupedTasks = useMemo(() => {
+    // Define priority order (high > medium > low)
+    const priorityOrder: { [key in TaskPriority]: number } = {
+      "high-prio": 0,
+      "med-prio": 1,
+      "low-prio": 2,
+    };
+
+    const sortByPriority = (tasksToSort: Task[]) => {
+      return [...tasksToSort].sort((a, b) => {
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      });
+    };
+
     return {
-      completed: filteredTasks.filter((task) => task.status === "completed"),
-      "in-progress": filteredTasks.filter((task) => task.status === "in-progress"),
-      pending: filteredTasks.filter((task) => task.status === "pending"),
+      completed: sortByPriority(filteredTasks.filter((task) => task.status === "completed")),
+      "in-progress": sortByPriority(filteredTasks.filter((task) => task.status === "in-progress")),
+      pending: sortByPriority(filteredTasks.filter((task) => task.status === "pending")),
     };
   }, [filteredTasks]);
 

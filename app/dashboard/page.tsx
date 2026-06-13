@@ -127,19 +127,21 @@ export const Dashboard = (): JSX.Element => {
             </section>
           )}
 
-          <div className="inline-flex flex-col items-center justify-center gap-2.5 px-5 py-2.5 fixed top-20 right-4 sm:right-8 bg-[#002a8b] rounded-[15px]">
-            <div className="flex items-center gap-5 relative self-stretch w-full flex-[0_0_auto]">
-              <img
-                className="relative w-[19.19px] h-[20.13px]"
-                alt="user avatar"
-                aria-hidden="true"
-                src="/user.svg"
-              />
-              <div className="mt-[-1.00px] text-[#f8f0e2] text-[15px] relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold tracking-[0] leading-[normal]">
-                {isMounted ? username : ""}
+          {isMounted && (
+            <div className="inline-flex flex-col items-center justify-center gap-2.5 px-5 py-2.5 fixed top-20 right-4 sm:right-8 bg-[#002a8b] rounded-[15px]">
+              <div className="flex items-center gap-5 relative self-stretch w-full flex-[0_0_auto]">
+                <img
+                  className="relative w-[19.19px] h-[20.13px]"
+                  alt="user avatar"
+                  aria-hidden="true"
+                  src="/user.svg"
+                />
+                <div className="mt-[-1.00px] text-[#f8f0e2] text-[15px] relative w-fit [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold tracking-[0] leading-[normal]">
+                  {username}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <aside aria-label="Sidebar navigation">
             <SidebarNavigationSection />

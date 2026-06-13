@@ -50,6 +50,7 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [scale, setScale] = useState<number>(1);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [savedUsername, setSavedUsername] = useState<string>("");
   const [formState, setFormState] = useState<FormState>({
     username: "",
     email: "",
@@ -82,9 +83,11 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (response.ok) {
+        const username = data.user.Username || "";
+        setSavedUsername(username);
         setFormState((prev) => ({
           ...prev,
-          username: data.user.Username || "",
+          username: username,
           email: data.user.Email || "",
         }));
       } else {
@@ -148,6 +151,7 @@ export default function SettingsPage() {
         setMessage({ type: "success", text: "Settings updated successfully" });
         if (formState.username) {
           localStorage.setItem("userUsername", formState.username);
+          setSavedUsername(formState.username);
         }
         setFormState((prev) => ({
           ...prev,
@@ -198,7 +202,7 @@ export default function SettingsPage() {
                   aria-hidden="true"
                 />
                 <div className="w-fit mt-[-1.00px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#f8f0e2] text-[15px] relative tracking-[0] leading-[normal]">
-                  {isMounted ? formState.username : "User"}
+                  {isMounted ? savedUsername : "User"}
                 </div>
               </div>
             </div>

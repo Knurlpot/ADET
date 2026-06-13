@@ -19,6 +19,8 @@ type CompletedTask = {
 export const TaskCompletionHeatmapSection = (): JSX.Element => {
   const [tasksPerDay, setTasksPerDay] = useState<{ [day: number]: number }>({});
   const [monthYear, setMonthYear] = useState<string>("");
+  const [daysInMonth, setDaysInMonth] = useState<number>(0);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
   console.log("TaskCompletionHeatmapSection component rendered");
 
@@ -103,6 +105,12 @@ export const TaskCompletionHeatmapSection = (): JSX.Element => {
   };
 
   useEffect(() => {
+    setIsMounted(true);
+    // Calculate days in month on client side
+    const today = new Date();
+    const days = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    setDaysInMonth(days);
+    
     // Initial fetch
     fetchCompletedTasks();
 
@@ -130,9 +138,7 @@ export const TaskCompletionHeatmapSection = (): JSX.Element => {
     return "bg-[#002a8b]";
   };
 
-  // Get the number of days in the current month
-  const today = new Date();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  // Get the array of days for the current month
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   return (
     <section
