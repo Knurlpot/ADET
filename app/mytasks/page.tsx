@@ -269,7 +269,7 @@ export default function MyTasks(): React.ReactElement {
     };
   }, [filteredTasks]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // Handlers
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -286,7 +286,7 @@ export default function MyTasks(): React.ReactElement {
         return;
       }
 
-      // ── EDIT MODE: PUT request to update existing task ────────────────────
+      //  EDIT MODE: PUT request to update existing task 
       if (editingTaskId !== null) {
         const payload = {
           name: taskName.trim(),
@@ -328,7 +328,7 @@ export default function MyTasks(): React.ReactElement {
         return;
       }
 
-      // ── ADD MODE: POST request to create new task ─────────────────────────
+      //  ADD MODE: POST request to create new task 
       const payload = {
         userId,
         name: taskName.trim(),
@@ -459,7 +459,7 @@ export default function MyTasks(): React.ReactElement {
     setDraggedTaskId(null);
   };
 
-  // ── NEW: Delete handler ───────────────────────────────────────────────────
+  //  NEW: Delete handler 
   const handleDeleteTask = async (taskId: number) => {
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
@@ -478,7 +478,7 @@ export default function MyTasks(): React.ReactElement {
     }
   };
 
-  // ── NEW: Edit handler (stub — opens modal pre-filled) ────────────────────
+  //  NEW: Edit handler (stub — opens modal pre-filled) 
   const handleEditTask = (task: Task) => {
     setTaskName(task.name);
     setTaskDescription(task.description);
@@ -489,7 +489,7 @@ export default function MyTasks(): React.ReactElement {
     setExpandedTaskId(null);
   };
 
-  // ── NEW: Toggle expanded card ─────────────────────────────────────────────
+  //  NEW: Toggle expanded card 
   const handleToggleExpand = (taskId: number) => {
     setExpandedTaskId((current) => (current === taskId ? null : taskId));
   };

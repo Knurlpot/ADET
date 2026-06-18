@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 type PhaseConfig = {
   id: string;
   label: string;
-  vectorSrc: string; // Pointing cleanly to your public folder files
+  vectorSrc: string;
   sunFilter: string;
 };
 
@@ -14,28 +14,24 @@ const phases: PhaseConfig[] = [
     id: "night",
     label: "Night",
     vectorSrc: "/vector-1.png",
-    // Edits the yellow sun into a beautiful dark monochrome moon canvas
     sunFilter: "brightness(0.4) grayscale(1) contrast(1.2)",
   },
   {
     id: "morning",
     label: "Morning",
     vectorSrc: "/vector-1-2.png",
-    // Soft morning light glow
     sunFilter: "sepia(0.15) brightness(1.05) saturate(1.1)",
   },
   {
     id: "afternoon",
     label: "Afternoon",
     vectorSrc: "/vector-1-1.png",
-    // High-contrast crisp afternoon sun
     sunFilter: "brightness(1.1) saturate(1.2)",
   },
   {
     id: "evening",
     label: "Evening",
     vectorSrc: "/vector-1-3.png",
-    // Deep terracotta sunset hue shift
     sunFilter: "hue-rotate(-28deg) saturate(1.8) brightness(0.85)",
   },
 ];
@@ -68,16 +64,13 @@ export const TimeOfDaySection = (): JSX.Element => {
                 isActive ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
               }`}
             >
-              {/* Main Card Title - Centered to completely prevent text wrapping */}
               <h2 className="absolute top-[32px] left-0 w-full text-center [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[19.6px] tracking-[0] leading-none">
                 Time of Day
               </h2>
 
-              {/* Central Graphical Illustrative Assembly */}
               <div className="absolute top-[75px] left-0 w-full h-[125px] flex items-center justify-center" aria-hidden="true">
                 <div className="relative w-[130px] h-full flex items-center justify-center">
                   
-                  {/* Single base sun modified via standard CSS filters */}
                   <img
                     style={{ filter: phase.sunFilter }}
                     className="absolute top-0 w-[128px] h-[128px] object-contain transition-all duration-1000"
@@ -85,7 +78,6 @@ export const TimeOfDaySection = (): JSX.Element => {
                     src="/base-sun.png"
                   />
                   
-                  {/* Underlay brush strokes matching the current active phase */}
                   <img
                     className="absolute bottom-[12px] w-[180px] max-w-none object-contain pointer-events-none"
                     alt=""
@@ -94,12 +86,10 @@ export const TimeOfDaySection = (): JSX.Element => {
                 </div>
               </div>
 
-              {/* Dynamic Phase Label Text */}
               <p className="absolute top-[222px] left-0 w-full text-center [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[19.6px] tracking-[0] leading-none">
                 {phase.label}
               </p>
 
-              {/* Static Context Sub-caption */}
               <p className="absolute top-[248px] left-0 w-full text-center [font-family:'TT_Fors_Trial-Regular',Helvetica] font-normal text-[#002a8b] text-[15.6px] tracking-[0] leading-none">
                 tasks most completed!
               </p>

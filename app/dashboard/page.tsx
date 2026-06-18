@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-// Import useRouter from next/navigation
 import { useRouter } from "next/navigation"; 
 import { DashboardGreetingSection } from "@/app/components/DashboardGreetingSection";
 import { PomodoroTimerSection } from "@/app/components/PomodoroTimerSection";
@@ -151,7 +150,6 @@ export const Dashboard = (): JSX.Element => {
             <div className="absolute top-[713px] left-[1070px] w-[295px] [font-family:'TT_Fors_Trial-Bold',Helvetica] font-bold text-[#002a8b] text-[106.1px] tracking-[0] leading-[normal]" />
           </section>
 
-          {/* Cleaned up: Removed hidden form element and turned button into a semantic click handler */}
           <button
             type="button"
             onClick={handleNavigateToTasks}

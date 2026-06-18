@@ -3,7 +3,6 @@ export const DashboardGreetingSection = ({
   remainingTasksCount = 0,
   greetingText = "good morning,",
   showUsername = true,
-  // Move the positioning to a single wrapper container
   position = "fixed top-[77px] left-[450px] sm:left-[516px]",
   ariaLabel = "Dashboard greeting",
 }: {
