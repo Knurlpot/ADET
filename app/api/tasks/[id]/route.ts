@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     console.log("[Tasks Update API] Updating task:", taskIdNumber);
     
-    // ── NEW: Handle full task edit (name, description, category, priority) ──
+    // Full task edit (name, description, category, priority) ──
     if (name && description && category && priority) {
       console.log("[Tasks Update API] Full task edit mode");
       const updateResult = await connection.execute(
